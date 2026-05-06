@@ -58,10 +58,12 @@ This project is built in phases. Earlier phases focus on shipping a playable sli
 - Rate limiting / input throttling where needed
 - Basic anti-cheat posture: server authoritative checks, ignore invalid commands
 
-### Phase 6 — Audio & atmosphere
-- Tone.js-driven ambience layers (wind, distant groans, interior hums)
-- Diegetic cues for actions (search hit, attack, barricade, crisis resolution)
-- Mix controls + mute, and respect OS “reduce motion” / “prefers-reduced-transparency” equivalents where applicable
+### Phase 6 — Audio & atmosphere ✅
+- Tone.js-driven ambient layers: per-location wind (pink noise + low-pass filter), interior hum (sine oscillator), and distant zombie groans on a randomised loop
+- Diegetic cues for every game event: dice roll, card draw/place, zombie attack, survivor death, morale drop, crisis reveal/pass/fail, crossroads trigger, game-over win/loss — all synthesised, no audio files
+- Shared reverb chain (light + heavy) initialised once on first user interaction; all one-shot synths self-dispose after playback
+- Mix controls widget (bottom-right corner): mute toggle + volume slider, state persisted to localStorage
+- Respects `prefers-reduced-motion`: audio starts muted and volume control disabled when the OS accessibility preference is set
 
 ### Phase 7 — Content & balancing
 - Expand decks + scenario variety
