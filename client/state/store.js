@@ -79,7 +79,7 @@ export function initStore () {
         if (state.game) {
           state = { ...state, game: { ...state.game, phase: payload.phase, round: payload.round } }
         }
-        addLog(state, `Phase changed to ${payload.phase} (round ${payload.round}).`)
+        addLog(state, `Phase: ${payload.phase} (round ${payload.round}).`)
         break
       case 'ACTION_RESULT':
         if (payload.narration) addLog(state, payload.narration)

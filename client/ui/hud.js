@@ -81,12 +81,17 @@ export function initHud (store) {
     <div id="hud" class="hidden">
       <div class="hud-item">
         <span class="hud-label">Round</span>
-        <span class="hud-value" id="hud-round">1</span>
+        <span class="hud-value" id="hud-round">1 / 10</span>
       </div>
       <div class="hud-divider"></div>
       <div class="hud-item">
         <span class="hud-label">Morale</span>
         <div class="morale-dots" id="hud-morale-dots"></div>
+      </div>
+      <div class="hud-divider"></div>
+      <div class="hud-item">
+        <span class="hud-label">Food</span>
+        <span class="hud-value" id="hud-food">0</span>
       </div>
       <div class="hud-divider"></div>
       <div class="hud-item">
@@ -98,21 +103,28 @@ export function initHud (store) {
         <span class="hud-label">Active</span>
         <span class="hud-value" id="hud-active">—</span>
       </div>
+      <div class="hud-divider"></div>
+      <div class="hud-item">
+        <span class="hud-label">Dice</span>
+        <span class="hud-value" id="hud-dice">—</span>
+      </div>
     </div>
   `
 
   const hudEl = el.querySelector('#hud')
   const roundEl = el.querySelector('#hud-round')
   const moraleDotsEl = el.querySelector('#hud-morale-dots')
+  const foodEl = el.querySelector('#hud-food')
   const phaseEl = el.querySelector('#hud-phase')
   const activeEl = el.querySelector('#hud-active')
+  const diceEl = el.querySelector('#hud-dice')
 
   store.subscribe((state) => {
     const game = state.game
     if (!game) return
 
     hudEl.classList.remove('hidden')
-    roundEl.textContent = game.round || 1
+    roundEl.textContent = `${game.round || 1} / ${game.scenarioRounds || 10}`
 
     // Morale dots (max 10)
     const morale = game.morale || 0
@@ -121,6 +133,9 @@ export function initHud (store) {
       const critical = active && morale <= 2
       return `<div class="morale-dot${active ? (critical ? ' critical' : ' active') : ''}"></div>`
     }).join('')
+
+    // Food supply
+    foodEl.textContent = game.food ?? 0
 
     // Phase badge
     const phase = game.phase || 'setup'
@@ -131,5 +146,9 @@ export function initHud (store) {
     const activePid = game.activePlayerId
     const activePlayer = (game.players || []).find(p => p.id === activePid)
     activeEl.textContent = activePlayer ? activePlayer.displayName : '—'
+
+    // Dice remaining
+    const diceCount = (game.actionDice || []).length
+    diceEl.textContent = phase === 'action' ? diceCount : '—'
   })
 }

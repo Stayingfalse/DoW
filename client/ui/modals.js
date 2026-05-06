@@ -87,11 +87,19 @@ export function initModals (store, ws) {
       </div>
     </div>
 
+    <!-- Crisis phase panel (shown during crisis phase, not a blocking modal) -->
+    <div id="crisis-panel" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #4d1d1d;border-radius:10px;padding:18px 28px;min-width:360px;max-width:500px;z-index:55;">
+      <div style="font-size:0.65rem;color:#ffa198;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Active Crisis</div>
+      <div id="crisis-name" style="font-size:1rem;font-weight:700;color:#e6edf3;margin-bottom:4px;"></div>
+      <div id="crisis-desc" style="font-size:0.85rem;color:#8b949e;margin-bottom:10px;"></div>
+      <div id="crisis-type-info" style="font-size:0.78rem;color:#ffa198;"></div>
+    </div>
+
     <!-- Crisis reveal modal -->
     <div id="modal-crisis" class="modal-backdrop hidden">
       <div class="modal-box">
         <button class="modal-close" id="crisis-close">✕</button>
-        <h3>Crisis Resolved</h3>
+        <h3 id="crisis-resolve-title">Crisis Resolved</h3>
         <p id="crisis-result-text"></p>
       </div>
     </div>
@@ -101,7 +109,7 @@ export function initModals (store, ws) {
       <div class="modal-box">
         <h3>Game Over</h3>
         <div id="gameover-result" class="game-over-result"></div>
-        <p id="gameover-betrayer"></p>
+        <p id="gameover-reason"></p>
       </div>
     </div>
   `
@@ -115,6 +123,7 @@ export function initModals (store, ws) {
 
   // ─── Crisis ────────────────────────────────────────────────────────────────
   const crisisModal = el.querySelector('#modal-crisis')
+  const crisisPanel = el.querySelector('#crisis-panel')
   el.querySelector('#crisis-close').addEventListener('click', () => {
     crisisModal.classList.add('hidden')
     store.dispatch({ type: 'UI_CLOSE_MODAL' })
@@ -123,6 +132,19 @@ export function initModals (store, ws) {
   // ─── Store subscription ────────────────────────────────────────────────────
   store.subscribe((state) => {
     const modal = state.ui.activeModal
+
+    // Crisis panel — visible during the crisis phase to show the active card
+    const game = state.game
+    if (game && game.phase === 'crisis' && game.currentCrisis) {
+      const c = game.currentCrisis
+      el.querySelector('#crisis-name').textContent = c.name || 'Unknown Crisis'
+      el.querySelector('#crisis-desc').textContent = c.description || ''
+      el.querySelector('#crisis-type-info').textContent =
+        `Contribute ${c.threshold} ${c.contributionType} card${c.threshold !== 1 ? 's' : ''} to pass.`
+      crisisPanel.style.display = 'block'
+    } else {
+      crisisPanel.style.display = 'none'
+    }
 
     // Crossroads
     if (modal === 'crossroads' && state.ui.crossroadsCard) {
@@ -152,18 +174,18 @@ export function initModals (store, ws) {
     // Crisis reveal
     if (modal === 'crisis_reveal') {
       const text = el.querySelector('#crisis-result-text')
-      text.textContent = 'See event log for details.'
+      text.textContent = 'See the event log for details.'
       crisisModal.classList.remove('hidden')
     }
 
     // Game over
     if (modal === 'game_over' && state.game) {
       const resultEl = el.querySelector('#gameover-result')
-      const betrayerEl = el.querySelector('#gameover-betrayer')
+      const reasonEl = el.querySelector('#gameover-reason')
       const result = (state.game && state.game.result) || 'unknown'
       resultEl.textContent = result === 'win' ? 'Victory!' : 'Defeat'
       resultEl.className = `game-over-result game-over-${result === 'win' ? 'win' : 'loss'}`
-      betrayerEl.textContent = ''
+      reasonEl.textContent = ''
       el.querySelector('#modal-gameover').classList.remove('hidden')
     }
   })

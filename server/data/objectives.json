@@ -1,0 +1,51 @@
+[
+  {
+    "id": "obj_betrayer",
+    "type": "betrayer",
+    "name": "Betray the Colony",
+    "description": "You secretly work against the survivors. You win when colony morale reaches 0.",
+    "winCondition": { "type": "morale_zero" }
+  },
+  {
+    "id": "obj_united",
+    "type": "survivor",
+    "name": "United We Stand",
+    "description": "Survive the scenario with the colony's morale above 2.",
+    "winCondition": { "type": "scenario_complete", "moraleMin": 3 }
+  },
+  {
+    "id": "obj_feeder",
+    "type": "survivor",
+    "name": "Feed the Colony",
+    "description": "Ensure the colony has at least 3 food when the scenario ends.",
+    "winCondition": { "type": "food_at_end", "count": 3 }
+  },
+  {
+    "id": "obj_hunter",
+    "type": "survivor",
+    "name": "Zombie Hunter",
+    "description": "Kill at least 5 zombies over the course of the game.",
+    "winCondition": { "type": "zombies_killed", "count": 5 }
+  },
+  {
+    "id": "obj_fortifier",
+    "type": "survivor",
+    "name": "Fortify",
+    "description": "Have at least 3 barricades spread across all locations when the scenario ends.",
+    "winCondition": { "type": "barricades_at_end", "count": 3 }
+  },
+  {
+    "id": "obj_pacifist",
+    "type": "survivor",
+    "name": "Keep Everyone Alive",
+    "description": "Ensure no survivor is exiled or eliminated by the end of the game.",
+    "winCondition": { "type": "no_exile" }
+  },
+  {
+    "id": "obj_hoarder",
+    "type": "survivor",
+    "name": "Hoarder",
+    "description": "Have at least 4 item cards in your hand when the scenario ends.",
+    "winCondition": { "type": "hand_size", "count": 4 }
+  }
+]

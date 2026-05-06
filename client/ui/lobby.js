@@ -154,6 +154,10 @@ export function initLobby (store, ws) {
             <div style="font-size:0.78rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">In Lobby</div>
             <div class="presence-list" id="presence-list"></div>
           </div>
+
+          <hr class="lobby-divider" />
+
+          <button class="btn btn-primary" id="lobby-start-btn" style="width:100%;margin-top:4px;" disabled>Start Game</button>
         </div>
       </div>
     </div>
@@ -169,6 +173,7 @@ export function initLobby (store, ws) {
   const gameIdInput = el.querySelector('#lobby-gameid')
   const joinGameBtn = el.querySelector('#lobby-joingame-btn')
   const presenceList = el.querySelector('#presence-list')
+  const startGameBtn = el.querySelector('#lobby-start-btn')
 
   joinBtn.addEventListener('click', async () => {
     errorEl.textContent = ''
@@ -209,10 +214,18 @@ export function initLobby (store, ws) {
     ws.send('JOIN_GAME', { gameId })
   })
 
+  startGameBtn.addEventListener('click', () => {
+    ws.send('START_GAME', {})
+  })
+
   // Hide lobby when game starts
   store.subscribe((state) => {
     if (state.game && state.game.phase !== 'setup') {
       document.getElementById('lobby').classList.add('hidden')
+    }
+    // Enable Start Game button once player is in a game (setup phase)
+    if (state.game && state.game.phase === 'setup') {
+      startGameBtn.disabled = false
     }
     // Update presence list
     presenceList.innerHTML = (state.lobby.players || [])

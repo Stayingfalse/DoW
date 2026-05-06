@@ -5,21 +5,28 @@
  */
 function spawnZombies (locationId, count, state) {
   if (!state.locations[locationId]) return state
-  state.locations[locationId].zombieCount = (state.locations[locationId].zombieCount || 0) + count
+  state.locations[locationId].zombie_count = (state.locations[locationId].zombie_count || 0) + count
   return state
 }
 
 /**
- * Colony phase: moves zombies from exterior locations toward colony.
- * Each location with zombies and no barricades adds 1 zombie to colony.
+ * Colony phase: moves zombies from exterior locations toward the colony.
+ * Reduces barricades first; if none remain, zombies enter the colony.
  */
 function moveZombies (state) {
   const colonyId = 'colony'
+  if (!state.locations[colonyId]) return state
+
   for (const [locId, loc] of Object.entries(state.locations)) {
     if (locId === colonyId) continue
-    if ((loc.zombieCount || 0) > 0 && (loc.barricadeCount || 0) === 0) {
-      state.locations[colonyId] = state.locations[colonyId] || { zombieCount: 0 }
-      state.locations[colonyId].zombieCount = (state.locations[colonyId].zombieCount || 0) + 1
+    if ((loc.zombie_count || 0) === 0) continue
+
+    if ((loc.barricade_count || 0) > 0) {
+      // Barricades absorb the zombie movement — remove one barricade
+      loc.barricade_count = loc.barricade_count - 1
+    } else {
+      // No barricades — one zombie moves into colony
+      state.locations[colonyId].zombie_count = (state.locations[colonyId].zombie_count || 0) + 1
     }
   }
   return state
@@ -27,21 +34,19 @@ function moveZombies (state) {
 
 /**
  * Zombies attack survivors at a location.
- * Each zombie has a chance to wound a survivor.
+ * Each zombie at the location has a chance to wound a random survivor.
  */
 function attackSurvivors (locationId, state) {
   const loc = state.locations[locationId]
-  if (!loc || !loc.zombieCount) return { wounds: 0, state }
+  if (!loc || !loc.zombie_count) return { wounds: 0, state }
 
-  const survivorIds = loc.survivorIds || []
+  const survivorIds = loc.survivor_ids || []
   if (!survivorIds.length) return { wounds: 0, state }
 
-  // Simple: each zombie wounds one random survivor
   let wounds = 0
-  for (let i = 0; i < loc.zombieCount; i++) {
+  for (let i = 0; i < loc.zombie_count; i++) {
     const target = survivorIds[Math.floor(Math.random() * survivorIds.length)]
     if (target) {
-      // Mark wound in state (survivors tracked in game state, simplified here)
       state.wounds = state.wounds || {}
       state.wounds[target] = (state.wounds[target] || 0) + 1
       wounds++

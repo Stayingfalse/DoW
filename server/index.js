@@ -18,6 +18,7 @@ app.register(require('./plugins/websocket'))
 // Register routes
 app.register(require('./routes/auth'), { prefix: '/auth' })
 app.register(require('./routes/game'), { prefix: '/ws' })
+app.register(require('./routes/data'), { prefix: '/game' })
 
 const port = parseInt(process.env.PORT || '3000', 10)
 app.listen({ port, host: '0.0.0.0' }, (err) => {

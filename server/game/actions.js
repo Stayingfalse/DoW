@@ -3,14 +3,14 @@
 /**
  * Validates and applies a player action to the game state.
  * Returns { success, newState, effects, narration } or { success: false, error }
+ *
+ * Location fields use snake_case (zombie_count, barricade_count, search_deck,
+ * survivor_ids) consistent with the SQLite schema and what the client reads.
  */
 function applyAction (state, playerId, type, payload) {
-  // Phase guard
   if (state.phase !== 'action') {
     return { success: false, error: 'Not the action phase' }
   }
-
-  // Turn guard
   if (state.activePlayerId !== playerId) {
     return { success: false, error: 'Not your turn' }
   }
@@ -44,12 +44,13 @@ function applyMove (state, playerId, payload) {
   if (!loc) {
     return { success: false, error: `Unknown location: ${toLocationId}` }
   }
-  // Move survivor in state
+
+  // Remove survivor from their current location
   for (const locId of Object.keys(state.locations)) {
     const l = state.locations[locId]
-    l.survivorIds = (l.survivorIds || []).filter(id => id !== survivorId)
+    l.survivor_ids = (l.survivor_ids || []).filter(id => id !== survivorId)
   }
-  loc.survivorIds = [...(loc.survivorIds || []), survivorId]
+  loc.survivor_ids = [...(loc.survivor_ids || []), survivorId]
 
   return {
     success: true,
@@ -64,8 +65,8 @@ function applyAttack (state, playerId, payload) {
   const loc = state.locations[locationId]
   if (!loc) return { success: false, error: 'Invalid location' }
 
-  const killed = Math.min(1, loc.zombieCount || 0)
-  loc.zombieCount = (loc.zombieCount || 0) - killed
+  const killed = Math.min(1, loc.zombie_count || 0)
+  loc.zombie_count = (loc.zombie_count || 0) - killed
 
   return {
     success: true,
@@ -83,7 +84,9 @@ function applySearch (state, playerId, payload) {
   const player = state.players.find(p => p.id === playerId)
   if (!player) return { success: false, error: 'Player not found' }
 
-  const item = (loc.searchDeck || []).shift()
+  const deck = loc.search_deck || []
+  const item = deck.shift()
+  loc.search_deck = deck
   if (item) {
     player.hand = [...(player.hand || []), item]
   }
@@ -116,14 +119,14 @@ function applyBarricade (state, playerId, payload) {
   const player = state.players.find(p => p.id === playerId)
   if (!player) return { success: false, error: 'Player not found' }
 
-  // Find survivor's location
+  // Find the survivor's current location
   let locId = null
   for (const [id, loc] of Object.entries(state.locations)) {
-    if ((loc.survivorIds || []).includes(survivorId)) { locId = id; break }
+    if ((loc.survivor_ids || []).includes(survivorId)) { locId = id; break }
   }
   if (!locId) return { success: false, error: 'Survivor location not found' }
 
-  state.locations[locId].barricadeCount = (state.locations[locId].barricadeCount || 0) + 1
+  state.locations[locId].barricade_count = (state.locations[locId].barricade_count || 0) + 1
 
   return {
     success: true,
@@ -135,7 +138,6 @@ function applyBarricade (state, playerId, payload) {
 
 function applyClean (state, playerId, payload) {
   const { survivorId } = payload || {}
-  // Wound clean — placeholder
   return {
     success: true,
     newState: state,
@@ -145,7 +147,6 @@ function applyClean (state, playerId, payload) {
 }
 
 function applyExile (state, playerId, targetSurvivorId) {
-  // Exile logic placeholder
   const player = state.players.find(p => (p.survivorIds || []).includes(targetSurvivorId))
   if (player) player.isExiled = true
   return { success: true }
