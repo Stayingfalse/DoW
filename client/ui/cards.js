@@ -30,7 +30,7 @@ export function initCards (store, ws) {
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      gap: 6px;
+      gap: 0;
       padding: 0 24px 16px;
       pointer-events: none;
       z-index: 20;
@@ -55,6 +55,7 @@ export function initCards (store, ws) {
       transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
       transform-origin: center bottom;
       user-select: none;
+      margin: 0 -8px;
     }
     .item-card:hover {
       transform: translateY(-16px) scale(1.06);

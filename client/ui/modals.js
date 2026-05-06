@@ -209,6 +209,18 @@ export function initModals (store, ws) {
     store.dispatch({ type: 'UI_CLOSE_MODAL' })
   })
 
+  // ─── Data caches ──────────────────────────────────────────────────────────
+  let charactersCache = null
+
+  async function getCharacters () {
+    if (charactersCache) return charactersCache
+    try {
+      const res = await fetch('/game/characters')
+      if (res.ok) { charactersCache = await res.json(); return charactersCache }
+    } catch (_) {}
+    return []
+  }
+
   // ─── Action Picker ─────────────────────────────────────────────────────────
   const actionPickerModal = el.querySelector('#modal-action-picker')
   let pickerState = { action: null, survivorId: null }
@@ -230,7 +242,7 @@ export function initModals (store, ws) {
     pickerState.survivorId = null
   })
 
-  function openActionPicker (action, state) {
+  async function openActionPicker (action, state) {
     pickerState = { action, survivorId: null }
     const game = state.game
     const auth = state.auth || {}
@@ -249,6 +261,10 @@ export function initModals (store, ws) {
     el.querySelector('#action-picker-step2').style.display = 'none'
     el.querySelector('#action-picker-back').style.display = 'none'
 
+    // Load character names for display
+    const chars = await getCharacters()
+    const charMap = new Map(chars.map(c => [c.id, c]))
+
     // Step 1: pick survivor
     const survivorChoicesEl = el.querySelector('#survivor-choices')
     survivorChoicesEl.innerHTML = survivorIds.map(sid => {
@@ -258,9 +274,10 @@ export function initModals (store, ws) {
         if ((loc.survivor_ids || []).includes(sid)) { locId = lid; break }
       }
       const locName = locId ? (LOCATION_NAMES[locId] || locId) : 'Unknown'
+      const charName = charMap.has(sid) ? charMap.get(sid).name : sid
       return `
         <button class="modal-choice-btn" data-survivor="${escHtml(sid)}">
-          👤 ${escHtml(sid)}
+          👤 ${escHtml(charName)}
           <small class="picker-survivor-meta">📍 ${escHtml(locName)}</small>
         </button>
       `
@@ -346,7 +363,9 @@ export function initModals (store, ws) {
     }
     // Action picker
     if (modal === 'action_picker' && state.ui.actionPicker) {
-      openActionPicker(state.ui.actionPicker.action, state)
+      openActionPicker(state.ui.actionPicker.action, state).catch(err => {
+        console.error('[Modals] Action picker error:', err)
+      })
     }
 
     // Crossroads

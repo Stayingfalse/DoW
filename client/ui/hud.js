@@ -165,6 +165,13 @@ export function initHud (store) {
     '#d2a8ff', '#79c0ff', '#ffa198', '#56d364'
   ]
 
+  // Stable colour from player ID hash (not join-order index)
+  function playerColour (playerId) {
+    let hash = 0
+    for (let i = 0; i < playerId.length; i++) hash = (hash * 31 + playerId.charCodeAt(i)) >>> 0
+    return PLAYER_COLOURS_HEX[hash % PLAYER_COLOURS_HEX.length]
+  }
+
   store.subscribe((state) => {
     const game = state.game
     if (!game) return
@@ -196,8 +203,8 @@ export function initHud (store) {
     const players = game.players || []
     if (players.length > 0) {
       playerStrip.classList.remove('hidden')
-      playerStrip.innerHTML = players.map((p, idx) => {
-        const colour = PLAYER_COLOURS_HEX[idx % PLAYER_COLOURS_HEX.length]
+      playerStrip.innerHTML = players.map(p => {
+        const colour = playerColour(p.id)
         const isActive = p.id === game.activePlayerId
         const exiledClass = p.isExiled ? ' exiled' : ''
         return `

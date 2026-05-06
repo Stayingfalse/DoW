@@ -160,7 +160,7 @@ export function initActions (store, ws) {
     el.querySelector('#end-turn-btn').disabled = !isMyTurn || !game || game.phase === 'setup'
 
     // Reconnect toast
-    const ws_state = state.wsState || ''
-    reconnectToast.classList.toggle('hidden', ws_state !== 'reconnecting')
+    const wsState = state.wsState || ''
+    reconnectToast.classList.toggle('hidden', wsState !== 'reconnecting')
   })
 }

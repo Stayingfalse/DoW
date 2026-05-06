@@ -18,7 +18,7 @@ const POSITIONS = {
   library:        [  3,   -7 ]
 }
 
-// Colour palette for players 0–7
+// Colour palette for players
 const PLAYER_COLOURS = [
   0x58a6ff, // blue
   0x3fb950, // green
@@ -29,6 +29,15 @@ const PLAYER_COLOURS = [
   0xffa198, // pink
   0x56d364  // lime
 ]
+
+/**
+ * Returns a stable colour for a player ID by hashing the string.
+ */
+function playerColour (playerId) {
+  let hash = 0
+  for (let i = 0; i < playerId.length; i++) hash = (hash * 31 + playerId.charCodeAt(i)) >>> 0
+  return PLAYER_COLOURS[hash % PLAYER_COLOURS.length]
+}
 
 /**
  * Initialise the token layer.
@@ -44,10 +53,15 @@ export function initTokens (scene, store) {
   // Map: locationId -> THREE.Mesh[] (zombie clumps)
   const zombieMeshes = new Map()
 
+  // ─── Shared geometries ────────────────────────────────────────────────────────
+
+  const survivorBodyGeo = new THREE.CylinderGeometry(0.18, 0.25, 0.6, 8)
+  const survivorCapGeo = new THREE.SphereGeometry(0.18, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2)
+  const zombieGeo = new THREE.CylinderGeometry(0.14, 0.18, 0.45, 6)
+
   // ─── Geometry factories ──────────────────────────────────────────────────────
 
   function makeSurvivorMesh (colour) {
-    const geo = new THREE.CylinderGeometry(0.18, 0.25, 0.6, 8)
     const mat = new THREE.MeshStandardMaterial({
       color: colour,
       roughness: 0.55,
@@ -55,18 +69,16 @@ export function initTokens (scene, store) {
       emissive: colour,
       emissiveIntensity: 0.12
     })
-    const mesh = new THREE.Mesh(geo, mat)
+    const mesh = new THREE.Mesh(survivorBodyGeo, mat)
     mesh.castShadow = true
-    // Rounded cap disc
-    const capGeo = new THREE.SphereGeometry(0.18, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2)
-    const cap = new THREE.Mesh(capGeo, mat)
-    cap.position.y = 0.28
-    mesh.add(cap)
+    // Rounded cap disc (shared geometry, same material)
+    const capMesh = new THREE.Mesh(survivorCapGeo, mat)
+    capMesh.position.y = 0.28
+    mesh.add(capMesh)
     return mesh
   }
 
   function makeZombieMesh () {
-    const geo = new THREE.CylinderGeometry(0.14, 0.18, 0.45, 6)
     const mat = new THREE.MeshStandardMaterial({
       color: 0x3d1c1c,
       roughness: 0.9,
@@ -74,7 +86,7 @@ export function initTokens (scene, store) {
       emissive: 0x1a0a0a,
       emissiveIntensity: 0.3
     })
-    const mesh = new THREE.Mesh(geo, mat)
+    const mesh = new THREE.Mesh(zombieGeo, mat)
     mesh.castShadow = true
     return mesh
   }
@@ -104,10 +116,10 @@ export function initTokens (scene, store) {
     const locations = game.locations || {}
     const players = game.players || []
 
-    // Build survivorId -> playerIndex map for colour assignment
+    // Build survivorId -> playerId map for stable colour assignment
     const survivorOwner = new Map()
-    players.forEach((p, idx) => {
-      (p.survivorIds || []).forEach(sid => survivorOwner.set(sid, idx))
+    players.forEach((p) => {
+      (p.survivorIds || []).forEach(sid => survivorOwner.set(sid, p.id))
     })
 
     // ── Survivors ────────────────────────────────────────────────────────────
@@ -120,8 +132,8 @@ export function initTokens (scene, store) {
 
       survivorIds.forEach((sid, i) => {
         activeSurvivorIds.add(sid)
-        const playerIdx = survivorOwner.get(sid) || 0
-        const colour = PLAYER_COLOURS[playerIdx % PLAYER_COLOURS.length]
+        const ownerId = survivorOwner.get(sid) || sid
+        const colour = playerColour(ownerId)
 
         if (!survivorMeshes.has(sid)) {
           const mesh = makeSurvivorMesh(colour)
@@ -143,7 +155,9 @@ export function initTokens (scene, store) {
     for (const [sid, mesh] of survivorMeshes.entries()) {
       if (!activeSurvivorIds.has(sid)) {
         group.remove(mesh)
-        mesh.geometry.dispose()
+        // Dispose material (geometry is shared, do not dispose)
+        if (mesh.material) mesh.material.dispose()
+        mesh.children.forEach(child => { if (child.material) child.material.dispose() })
         survivorMeshes.delete(sid)
       }
     }
