@@ -5,6 +5,7 @@
 
 const initialState = {
   ws: { connected: false },
+  wsState: 'disconnected',
   auth: { playerId: null, displayName: null, isAuthenticated: false },
   lobby: { players: [] },
   game: null,
@@ -13,6 +14,7 @@ const initialState = {
     activeModal: null,
     crossroadsCard: null,
     actionMenu: null,
+    actionPicker: null,
     log: []
   }
 }
@@ -32,10 +34,13 @@ export function initStore () {
     switch (type) {
       // ─── WebSocket ──────────────────────────────────────────────────────────
       case 'WS_CONNECTED':
-        state = { ...state, ws: { connected: true } }
+        state = { ...state, ws: { connected: true }, wsState: 'connected' }
         break
       case 'WS_DISCONNECTED':
-        state = { ...state, ws: { connected: false } }
+        state = { ...state, ws: { connected: false }, wsState: 'disconnected' }
+        break
+      case 'WS_RECONNECTING':
+        state = { ...state, ws: { connected: false }, wsState: 'reconnecting' }
         break
 
       // ─── Auth ───────────────────────────────────────────────────────────────
@@ -105,14 +110,22 @@ export function initStore () {
           ...state,
           ui: { ...state.ui, activeModal: 'crisis_reveal' }
         }
-        addLog(state, payload.pass ? 'Crisis passed!' : 'Crisis failed!')
+        if (payload.pass) {
+          addLog(state, `Crisis passed! "${payload.crisisName || ''}" — ${payload.qualifyingCount || 0}/${payload.threshold || 0} cards contributed.`)
+        } else {
+          addLog(state, `Crisis failed! "${payload.crisisName || ''}" — morale -${payload.moralePenalty || 1}.`)
+        }
+        break
+      case 'EXILE_VOTE':
+        addLog(state, `Exile vote: survivor ${payload.targetSurvivorId || '—'} was voted out.`)
         break
       case 'GAME_OVER':
         state = {
           ...state,
+          game: state.game ? { ...state.game, result: payload.result } : state.game,
           ui: { ...state.ui, activeModal: 'game_over' }
         }
-        addLog(state, `Game over — ${payload.result}!`)
+        addLog(state, `Game over — ${payload.result}! Reason: ${payload.reason || ''}.`)
         break
 
       // ─── UI ─────────────────────────────────────────────────────────────────
@@ -124,6 +137,12 @@ export function initStore () {
         break
       case 'UI_ACTION_MENU':
         state = { ...state, ui: { ...state.ui, actionMenu: payload } }
+        break
+      case 'UI_OPEN_ACTION_PICKER':
+        state = { ...state, ui: { ...state.ui, actionPicker: payload, activeModal: 'action_picker' } }
+        break
+      case 'UI_CLOSE_ACTION_PICKER':
+        state = { ...state, ui: { ...state.ui, actionPicker: null, activeModal: null } }
         break
 
       default:

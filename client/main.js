@@ -8,6 +8,7 @@ import { WsClient } from './ws-client.js'
 import { initLobby } from './ui/lobby.js'
 import { initHud } from './ui/hud.js'
 import { initCards } from './ui/cards.js'
+import { initActions } from './ui/actions.js'
 import { initModals } from './ui/modals.js'
 import { initLog } from './ui/log.js'
 
@@ -33,6 +34,7 @@ async function main () {
     initLobby(store, ws)
     initHud(store)
     initCards(store, ws)
+    initActions(store, ws)
     initModals(store, ws)
     initLog(store)
 

@@ -38,6 +38,7 @@ export class WsClient {
       this.store.dispatch({ type: 'WS_DISCONNECTED' })
       if (event.code !== 4001) {
         // Reconnect unless kicked for auth
+        this.store.dispatch({ type: 'WS_RECONNECTING' })
         setTimeout(() => {
           this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000)
           this.connect()

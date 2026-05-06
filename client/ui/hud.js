@@ -72,6 +72,49 @@ export function initHud (store) {
     .phase-badge.crisis { background: #4d1d1d; color: #ffa198; }
     .phase-badge.colony { background: #1a3424; color: #56d364; }
     .phase-badge.cleanup { background: #2b2015; color: #e3b341; }
+
+    /* Player turn-order strip */
+    #player-strip {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      pointer-events: none;
+    }
+    #player-strip.hidden { display: none; }
+    .player-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1.5px solid #30363d;
+      background: rgba(22, 27, 34, 0.85);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #8b949e;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .player-chip.active-player {
+      border-color: #58a6ff;
+      background: rgba(13, 65, 157, 0.45);
+      color: #e6edf3;
+    }
+    .player-chip.active-player .chip-dot { background: #58a6ff; }
+    .player-chip.exiled { opacity: 0.35; text-decoration: line-through; }
+    .chip-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #30363d;
+    }
+    .chip-handsize {
+      font-size: 0.6rem;
+      color: #484f58;
+      margin-left: 2px;
+    }
   `
   const styleEl = document.createElement('style')
   styleEl.textContent = styles
@@ -100,15 +143,11 @@ export function initHud (store) {
       </div>
       <div class="hud-divider"></div>
       <div class="hud-item">
-        <span class="hud-label">Active</span>
-        <span class="hud-value" id="hud-active">—</span>
-      </div>
-      <div class="hud-divider"></div>
-      <div class="hud-item">
         <span class="hud-label">Dice</span>
         <span class="hud-value" id="hud-dice">—</span>
       </div>
     </div>
+    <div id="player-strip" class="hidden"></div>
   `
 
   const hudEl = el.querySelector('#hud')
@@ -116,8 +155,14 @@ export function initHud (store) {
   const moraleDotsEl = el.querySelector('#hud-morale-dots')
   const foodEl = el.querySelector('#hud-food')
   const phaseEl = el.querySelector('#hud-phase')
-  const activeEl = el.querySelector('#hud-active')
   const diceEl = el.querySelector('#hud-dice')
+  const playerStrip = el.querySelector('#player-strip')
+
+  // Player colours (same order as tokens.js)
+  const PLAYER_COLOURS_HEX = [
+    '#58a6ff', '#3fb950', '#f78166', '#e3b341',
+    '#d2a8ff', '#79c0ff', '#ffa198', '#56d364'
+  ]
 
   store.subscribe((state) => {
     const game = state.game
@@ -142,13 +187,32 @@ export function initHud (store) {
     phaseEl.textContent = phase
     phaseEl.className = `phase-badge ${phase}`
 
-    // Active player
-    const activePid = game.activePlayerId
-    const activePlayer = (game.players || []).find(p => p.id === activePid)
-    activeEl.textContent = activePlayer ? activePlayer.displayName : '—'
-
     // Dice remaining
     const diceCount = (game.actionDice || []).length
     diceEl.textContent = phase === 'action' ? diceCount : '—'
+
+    // Player turn-order strip
+    const players = game.players || []
+    if (players.length > 0) {
+      playerStrip.classList.remove('hidden')
+      playerStrip.innerHTML = players.map((p, idx) => {
+        const colour = PLAYER_COLOURS_HEX[idx % PLAYER_COLOURS_HEX.length]
+        const isActive = p.id === game.activePlayerId
+        const exiledClass = p.isExiled ? ' exiled' : ''
+        return `
+          <div class="player-chip${isActive ? ' active-player' : ''}${exiledClass}">
+            <div class="chip-dot" style="background:${colour}"></div>
+            ${escHtml(p.displayName)}
+            <span class="chip-handsize">(${p.handSize || 0})</span>
+          </div>
+        `
+      }).join('')
+    } else {
+      playerStrip.classList.add('hidden')
+    }
   })
+}
+
+function escHtml (str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }

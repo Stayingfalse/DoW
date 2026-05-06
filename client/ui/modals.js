@@ -88,7 +88,7 @@ export function initModals (store, ws) {
     </div>
 
     <!-- Crisis phase panel (shown during crisis phase, not a blocking modal) -->
-    <div id="crisis-panel" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #4d1d1d;border-radius:10px;padding:18px 28px;min-width:360px;max-width:500px;z-index:55;">
+    <div id="crisis-panel" style="display:none;position:fixed;bottom:164px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #4d1d1d;border-radius:10px;padding:18px 28px;min-width:360px;max-width:500px;z-index:55;">
       <div style="font-size:0.65rem;color:#ffa198;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Active Crisis</div>
       <div id="crisis-name" style="font-size:1rem;font-weight:700;color:#e6edf3;margin-bottom:4px;"></div>
       <div id="crisis-desc" style="font-size:0.85rem;color:#8b949e;margin-bottom:10px;"></div>
@@ -101,6 +101,27 @@ export function initModals (store, ws) {
         <button class="modal-close" id="crisis-close">✕</button>
         <h3 id="crisis-resolve-title">Crisis Resolved</h3>
         <p id="crisis-result-text"></p>
+      </div>
+    </div>
+
+    <!-- Action picker modal (multi-step survivor/location selection) -->
+    <div id="modal-action-picker" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <button class="modal-close" id="action-picker-close">✕</button>
+        <h3 id="action-picker-title">Choose Action</h3>
+        <div id="action-picker-step1">
+          <p style="color:#8b949e;font-size:0.85rem;margin-bottom:12px;">Select one of your survivors:</p>
+          <div class="modal-choices" id="survivor-choices"></div>
+        </div>
+        <div id="action-picker-step2" style="display:none">
+          <p style="color:#8b949e;font-size:0.85rem;margin-bottom:12px;" id="action-picker-step2-label">Select a location:</p>
+          <div class="modal-choices" id="location-choices"></div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="modal-choice-btn" id="action-picker-back" style="display:none;background:#0d1117;border-color:#484f58;color:#8b949e">
+            ← Back
+          </button>
+        </div>
       </div>
     </div>
 
@@ -129,6 +150,125 @@ export function initModals (store, ws) {
     store.dispatch({ type: 'UI_CLOSE_MODAL' })
   })
 
+  // ─── Action Picker ─────────────────────────────────────────────────────────
+  const actionPickerModal = el.querySelector('#modal-action-picker')
+  let pickerState = { action: null, survivorId: null }
+
+  const LOCATION_NAMES = {
+    colony: 'The Colony', gas_station: 'Gas Station', grocery_store: 'Grocery Store',
+    hospital: 'Hospital', police_station: 'Police Station', school: 'School', library: 'Library'
+  }
+
+  el.querySelector('#action-picker-close').addEventListener('click', () => {
+    actionPickerModal.classList.add('hidden')
+    store.dispatch({ type: 'UI_CLOSE_ACTION_PICKER' })
+  })
+
+  el.querySelector('#action-picker-back').addEventListener('click', () => {
+    el.querySelector('#action-picker-step1').style.display = 'block'
+    el.querySelector('#action-picker-step2').style.display = 'none'
+    el.querySelector('#action-picker-back').style.display = 'none'
+    pickerState.survivorId = null
+  })
+
+  function openActionPicker (action, state) {
+    pickerState = { action, survivorId: null }
+    const game = state.game
+    const auth = state.auth || {}
+    const player = (game.players || []).find(p => p.id === auth.playerId)
+    const survivorIds = (player && player.survivorIds) || []
+
+    const ACTION_LABELS = {
+      ACTION_MOVE: '🚶 Move Survivor',
+      ACTION_SEARCH: '🔍 Search Location',
+      ACTION_ATTACK: '⚔️ Attack Zombie',
+      ACTION_BARRICADE: '🪵 Build Barricade',
+      ACTION_CLEAN: '🩹 Clean Wound'
+    }
+    el.querySelector('#action-picker-title').textContent = ACTION_LABELS[action] || action
+    el.querySelector('#action-picker-step1').style.display = 'block'
+    el.querySelector('#action-picker-step2').style.display = 'none'
+    el.querySelector('#action-picker-back').style.display = 'none'
+
+    // Step 1: pick survivor
+    const survivorChoicesEl = el.querySelector('#survivor-choices')
+    survivorChoicesEl.innerHTML = survivorIds.map(sid => {
+      // Find which location the survivor is at
+      let locId = null
+      for (const [lid, loc] of Object.entries(game.locations || {})) {
+        if ((loc.survivor_ids || []).includes(sid)) { locId = lid; break }
+      }
+      const locName = locId ? (LOCATION_NAMES[locId] || locId) : 'Unknown'
+      return `
+        <button class="modal-choice-btn" data-survivor="${escHtml(sid)}">
+          👤 ${escHtml(sid)}
+          <small style="color:#8b949e;display:block;margin-top:2px">📍 ${escHtml(locName)}</small>
+        </button>
+      `
+    }).join('') || '<p style="color:#484f58;font-size:0.85rem">No survivors assigned.</p>'
+
+    survivorChoicesEl.querySelectorAll('.modal-choice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pickerState.survivorId = btn.dataset.survivor
+        pickStep2(action, pickerState.survivorId, state)
+      })
+    })
+
+    actionPickerModal.classList.remove('hidden')
+  }
+
+  function pickStep2 (action, survivorId, state) {
+    const game = state.game
+    el.querySelector('#action-picker-step1').style.display = 'none'
+    el.querySelector('#action-picker-step2').style.display = 'block'
+    el.querySelector('#action-picker-back').style.display = 'inline-block'
+
+    // For CLEAN action — no location needed, submit immediately
+    if (action === 'ACTION_CLEAN') {
+      ws.send(action, { survivorId })
+      actionPickerModal.classList.add('hidden')
+      store.dispatch({ type: 'UI_CLOSE_ACTION_PICKER' })
+      return
+    }
+
+    // For BARRICADE — auto-submit at survivor's current location
+    if (action === 'ACTION_BARRICADE') {
+      ws.send(action, { survivorId })
+      actionPickerModal.classList.add('hidden')
+      store.dispatch({ type: 'UI_CLOSE_ACTION_PICKER' })
+      return
+    }
+
+    // Step 2: pick location
+    const label = action === 'ACTION_MOVE' ? 'Move to which location?' : 'At which location?'
+    el.querySelector('#action-picker-step2-label').textContent = label
+
+    const locations = game.locations || {}
+    const locationChoicesEl = el.querySelector('#location-choices')
+    locationChoicesEl.innerHTML = Object.entries(locations).map(([locId, loc]) => {
+      const name = LOCATION_NAMES[locId] || locId
+      const zombies = loc.zombie_count || 0
+      const barricades = loc.barricade_count || 0
+      return `
+        <button class="modal-choice-btn" data-loc="${escHtml(locId)}">
+          ${escHtml(name)}
+          <small style="color:#8b949e;display:block;margin-top:2px">
+            🧟 ${zombies} zombies · 🪵 ${barricades} barricades
+          </small>
+        </button>
+      `
+    }).join('')
+
+    locationChoicesEl.querySelectorAll('.modal-choice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const locId = btn.dataset.loc
+        ws.send(action, { survivorId, locationId: locId, toLocationId: locId })
+        actionPickerModal.classList.add('hidden')
+        store.dispatch({ type: 'UI_CLOSE_ACTION_PICKER' })
+      })
+    })
+  }
+
   // ─── Store subscription ────────────────────────────────────────────────────
   store.subscribe((state) => {
     const modal = state.ui.activeModal
@@ -144,6 +284,11 @@ export function initModals (store, ws) {
       crisisPanel.style.display = 'block'
     } else {
       crisisPanel.style.display = 'none'
+    }
+
+    // Action picker
+    if (modal === 'action_picker' && state.ui.actionPicker) {
+      openActionPicker(state.ui.actionPicker.action, state)
     }
 
     // Crossroads
@@ -185,7 +330,12 @@ export function initModals (store, ws) {
       const result = (state.game && state.game.result) || 'unknown'
       resultEl.textContent = result === 'win' ? 'Victory!' : 'Defeat'
       resultEl.className = `game-over-result game-over-${result === 'win' ? 'win' : 'loss'}`
-      reasonEl.textContent = ''
+      const reasonMap = {
+        morale_zero: 'Colony morale collapsed.',
+        rounds_exceeded: 'The survivors did not complete the scenario in time.',
+        scenario_complete: 'Scenario objectives achieved!'
+      }
+      reasonEl.textContent = reasonMap[state.game.reason || ''] || ''
       el.querySelector('#modal-gameover').classList.remove('hidden')
     }
   })

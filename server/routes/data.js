@@ -3,6 +3,7 @@
 const scenariosData = require('../data/scenarios.json')
 const charactersData = require('../data/characters.json')
 const locationsData = require('../data/locations.json')
+const itemsData = require('../data/items.json')
 const db = require('../db/queries')
 
 module.exports = async function (fastify) {
@@ -30,6 +31,14 @@ module.exports = async function (fastify) {
       ability: c.ability,
       abilityDescription: c.abilityDescription
     })))
+  })
+
+  /**
+   * GET /game/items
+   * Returns the list of all item cards (public metadata).
+   */
+  fastify.get('/items', async (request, reply) => {
+    return reply.send(itemsData)
   })
 
   /**

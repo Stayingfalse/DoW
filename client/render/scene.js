@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { initLighting } from './lighting.js'
 import { initBoard } from './board.js'
 import { initParticles } from './particles.js'
+import { initTokens } from './tokens.js'
 
 export async function initScene (container, store) {
   // ─── Renderer ──────────────────────────────────────────────────────────────
@@ -50,6 +51,9 @@ export async function initScene (container, store) {
   // ─── Particles ─────────────────────────────────────────────────────────────
   const particles = initParticles(scene)
 
+  // ─── Tokens ────────────────────────────────────────────────────────────────
+  const tokens = initTokens(scene, store)
+
   // ─── Camera fade overlay ───────────────────────────────────────────────────
   const fadeEl = document.createElement('div')
   fadeEl.style.cssText = [
@@ -93,9 +97,11 @@ export async function initScene (container, store) {
   function tick () {
     rafId = requestAnimationFrame(tick)
     const delta = clock.getDelta()
+    elapsed = (elapsed || 0) + delta
     particles.update(delta)
     board.update(delta)
     lighting.update(delta)
+    tokens.update(elapsed)
     renderer.render(scene, activeCamera)
   }
 
@@ -105,6 +111,6 @@ export async function initScene (container, store) {
   return {
     scene, renderer, orthoCamera, perspCamera,
     switchToPerspective, switchToOrtho,
-    start, stop, board
+    start, stop, board, tokens
   }
 }
