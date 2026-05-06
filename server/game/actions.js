@@ -44,6 +44,12 @@ function applyMove (state, playerId, payload) {
   if (!loc) {
     return { success: false, error: `Unknown location: ${toLocationId}` }
   }
+  // Ownership already validated in engine before calling applyAction;
+  // double-check here for defence-in-depth
+  const player = state.players.find(p => p.id === playerId)
+  if (!player || !(player.survivorIds || []).includes(survivorId)) {
+    return { success: false, error: 'You do not control that survivor' }
+  }
 
   // Remove survivor from their current location
   for (const locId of Object.keys(state.locations)) {
@@ -64,6 +70,10 @@ function applyAttack (state, playerId, payload) {
   const { survivorId, locationId } = payload || {}
   const loc = state.locations[locationId]
   if (!loc) return { success: false, error: 'Invalid location' }
+  const player = state.players.find(p => p.id === playerId)
+  if (!player || !(player.survivorIds || []).includes(survivorId)) {
+    return { success: false, error: 'You do not control that survivor' }
+  }
 
   const killed = Math.min(1, loc.zombie_count || 0)
   loc.zombie_count = (loc.zombie_count || 0) - killed
@@ -83,6 +93,9 @@ function applySearch (state, playerId, payload) {
 
   const player = state.players.find(p => p.id === playerId)
   if (!player) return { success: false, error: 'Player not found' }
+  if (!(player.survivorIds || []).includes(survivorId)) {
+    return { success: false, error: 'You do not control that survivor' }
+  }
 
   const deck = loc.search_deck || []
   const item = deck.shift()
@@ -101,8 +114,15 @@ function applySearch (state, playerId, payload) {
 
 function applyItem (state, playerId, payload) {
   const { itemId, targetId } = payload || {}
+  if (typeof itemId !== 'string' || itemId.trim() === '') {
+    return { success: false, error: 'itemId required' }
+  }
   const player = state.players.find(p => p.id === playerId)
   if (!player) return { success: false, error: 'Player not found' }
+
+  // Validate item is in hand
+  const itemIdx = (player.hand || []).indexOf(itemId)
+  if (itemIdx === -1) return { success: false, error: 'Item not in hand' }
 
   player.hand = (player.hand || []).filter(i => i !== itemId)
 
@@ -118,6 +138,9 @@ function applyBarricade (state, playerId, payload) {
   const { survivorId } = payload || {}
   const player = state.players.find(p => p.id === playerId)
   if (!player) return { success: false, error: 'Player not found' }
+  if (!(player.survivorIds || []).includes(survivorId)) {
+    return { success: false, error: 'You do not control that survivor' }
+  }
 
   // Find the survivor's current location
   let locId = null
@@ -138,6 +161,11 @@ function applyBarricade (state, playerId, payload) {
 
 function applyClean (state, playerId, payload) {
   const { survivorId } = payload || {}
+  const player = state.players.find(p => p.id === playerId)
+  if (!player) return { success: false, error: 'Player not found' }
+  if (!(player.survivorIds || []).includes(survivorId)) {
+    return { success: false, error: 'You do not control that survivor' }
+  }
   return {
     success: true,
     newState: state,

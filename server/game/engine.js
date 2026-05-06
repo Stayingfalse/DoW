@@ -6,6 +6,7 @@ const statemachine = require('./statemachine')
 const actions = require('./actions')
 const crisis = require('./crisis')
 const crossroads = require('./crossroads')
+const validate = require('./validate')
 
 const locationsData = require('../data/locations.json')
 const itemsData = require('../data/items.json')
@@ -216,6 +217,40 @@ function broadcastPrivateState (gameId, presence) {
   }
 }
 
+/**
+ * Send the public game state to a specific set of sockets.
+ * Used for reconnect/resume unicast.
+ */
+function broadcastStateTo (gameId, sockets) {
+  const state = getGame(gameId)
+  if (!state) return
+  const data = JSON.stringify({ type: 'GAME_STATE', payload: publicState(state) })
+  for (const sock of sockets) {
+    if (sock.readyState === WS_OPEN) sock.send(data)
+  }
+}
+
+/**
+ * Send private state to a specific player via their socket.
+ * Used for reconnect/resume unicast.
+ */
+function broadcastPrivateStateTo (gameId, playerId, socket) {
+  const state = getGame(gameId)
+  if (!state || !socket || socket.readyState !== WS_OPEN) return
+  const player = (state.players || []).find(p => p.id === playerId)
+  if (!player) return
+  socket.send(JSON.stringify({
+    type: 'PRIVATE_STATE',
+    payload: {
+      hand: player.hand || [],
+      secretObjective: player.secretObjective || null,
+      isBetrayer: player.isBetrayer || false,
+      survivorIds: player.survivorIds || [],
+      crossroadsCard: player.crossroadsCard || null
+    }
+  }))
+}
+
 function publicState (state) {
   return {
     id: state.id,
@@ -278,14 +313,34 @@ function handleCreateGame (socket, request, payload, presence) {
 
 function handleJoinGame (socket, request, payload, presence) {
   const { gameId } = payload || {}
+  const v = validate.requireString(gameId, 'gameId', 36)
+  if (!v.ok) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: v.error } }))
+  }
   const state = getGame(gameId)
   if (!state) {
     return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Game not found' } }))
   }
-  if (state.phase !== 'setup') {
-    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Game already started' } }))
-  }
+
   const playerId = request.session.playerId
+
+  // Rejoin: player is already a member of this game (reconnect case handled at WS level,
+  // but allow explicit re-JOIN to sync session.gameId)
+  const alreadyIn = (state.players || []).some(p => p.id === playerId)
+  if (alreadyIn) {
+    request.session.gameId = gameId
+    broadcastStateTo(gameId, [socket])
+    broadcastPrivateStateTo(gameId, playerId, socket)
+    return
+  }
+
+  if (state.phase !== 'setup') {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Game already started — you may spectate only' } }))
+  }
+  if (state.players.length >= 6) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Game is full (max 6 players)' } }))
+  }
+
   const turnOrder = state.players.length
   db.assignPlayerToGame(playerId, gameId, turnOrder)
   request.session.gameId = gameId
@@ -330,8 +385,37 @@ function handlePlayerAction (socket, request, type, payload, presence) {
   const state = getGame(gameId)
   if (!state) return
 
+  // Auth: player must be in this game and not exiled
+  const inGame = validate.requirePlayerInGame(state, playerId)
+  if (!inGame.ok) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: inGame.error } }))
+  }
+  const notExiled = validate.requireNotExiled(state, playerId)
+  if (!notExiled.ok) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: notExiled.error } }))
+  }
+
   if (!state.actionDice || state.actionDice.length === 0) {
     return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'No action dice remaining — end your turn' } }))
+  }
+
+  // Validate survivorId ownership for actions that require it
+  const survivorActions = new Set(['ACTION_MOVE', 'ACTION_ATTACK', 'ACTION_SEARCH', 'ACTION_BARRICADE', 'ACTION_CLEAN'])
+  if (survivorActions.has(type)) {
+    const survivorId = payload && payload.survivorId
+    const own = validate.requireSurvivorOwnership(state, playerId, survivorId)
+    if (!own.ok) {
+      return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: own.error } }))
+    }
+  }
+
+  // Validate locationId for actions that require it
+  const locationField = (payload && (payload.locationId || payload.toLocationId))
+  if (locationField && (type === 'ACTION_MOVE' || type === 'ACTION_ATTACK' || type === 'ACTION_SEARCH')) {
+    const locCheck = validate.requireValidLocation(locationField)
+    if (!locCheck.ok) {
+      return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: locCheck.error } }))
+    }
   }
 
   const result = actions.applyAction(state, playerId, type, payload)
@@ -386,9 +470,22 @@ function handleCrisisContrib (socket, request, payload, presence) {
   const state = getGame(gameId)
   if (!state) return
 
+  const inGame = validate.requirePlayerInGame(state, playerId)
+  if (!inGame.ok) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: inGame.error } }))
+  }
+
+  // Validate that all contributed cards are actually in the player's hand
+  const cards = Array.isArray(payload && payload.cards) ? payload.cards : []
+  if (cards.length > 0) {
+    const cardsCheck = validate.requireCardsInHand(state, playerId, cards)
+    if (!cardsCheck.ok) {
+      return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: cardsCheck.error } }))
+    }
+  }
+
   // Remove contributed cards from player's hand
   const player = state.players.find(p => p.id === playerId)
-  const cards = payload.cards || []
   if (player) {
     for (const cardId of cards) {
       const idx = player.hand.indexOf(cardId)
@@ -463,9 +560,29 @@ function handleExileVote (socket, request, payload, presence) {
   const gameId = request.session.gameId
   const state = getGame(gameId)
   if (!state) return
+
+  const playerId = request.session.playerId
   const { targetSurvivorId } = payload || {}
-  const result = actions.applyExile(state, request.session.playerId, targetSurvivorId)
+
+  // Validate player is in the game and not exiled
+  const inGame = validate.requirePlayerInGame(state, playerId)
+  if (!inGame.ok) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: inGame.error } }))
+  }
+  const notExiled = validate.requireNotExiled(state, playerId)
+  if (!notExiled.ok) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: notExiled.error } }))
+  }
+
+  // Validate target
+  const targetCheck = validate.requireExileTarget(state, playerId, targetSurvivorId)
+  if (!targetCheck.ok) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: targetCheck.error } }))
+  }
+
+  const result = actions.applyExile(state, playerId, targetSurvivorId)
   if (result.success) {
+    broadcastToAll(gameId, presence, { type: 'EXILE_VOTE', payload: { targetSurvivorId } })
     saveGame(gameId)
     broadcastState(gameId, presence)
   }
@@ -514,7 +631,9 @@ module.exports = {
   getGame,
   saveGame,
   broadcastState,
+  broadcastStateTo,
   broadcastPrivateState,
+  broadcastPrivateStateTo,
   handleCreateGame,
   handleJoinGame,
   handleStartGame,

@@ -1,9 +1,13 @@
 'use strict'
 
 const WS_OPEN = 1 // WebSocket.OPEN
+const PROTOCOL_VERSION = 1
 
 // In-memory presence map: playerId -> WebSocket
 const presence = new Map()
+
+const ratelimit = require('../game/ratelimit')
+const engine = require('../game/engine')
 
 module.exports = async function (fastify) {
   fastify.get('/', { websocket: true }, (socket, request) => {
@@ -16,16 +20,44 @@ module.exports = async function (fastify) {
     const playerId = request.session.playerId
     const displayName = request.session.displayName
 
+    // Replace any stale socket in presence (handles reconnects for the same player)
     presence.set(playerId, socket)
     fastify.log.info({ playerId, displayName }, 'WS connected')
 
-    // Broadcast updated presence
-    broadcast({
-      type: 'PLAYER_JOINED',
-      payload: { playerId, displayName, playerCount: presence.size }
-    }, socket)
+    // ── Reconnect / resume ──────────────────────────────────────────────────
+    // If the player already has an active game, immediately send current state.
+    const resumeGameId = request.session.gameId
+    if (resumeGameId) {
+      const resumeState = engine.getGame(resumeGameId)
+      const isInGame = resumeState &&
+        (resumeState.players || []).some(p => p.id === playerId)
+
+      if (resumeState && isInGame) {
+        // Send full public + private state so client is fully up-to-date
+        engine.broadcastStateTo(resumeGameId, [socket])
+        engine.broadcastPrivateStateTo(resumeGameId, playerId, socket)
+        fastify.log.info({ playerId, resumeGameId }, 'WS resumed game state')
+      }
+    }
+
+    // Broadcast updated presence to others
+    for (const [pid, sock] of presence.entries()) {
+      if (pid !== playerId && sock.readyState === WS_OPEN) {
+        sock.send(JSON.stringify({
+          type: 'PLAYER_JOINED',
+          payload: { playerId, displayName, playerCount: presence.size }
+        }))
+      }
+    }
 
     socket.on('message', (raw) => {
+      // Rate limiting
+      const rl = ratelimit.check(playerId, '')
+      if (rl.limited) {
+        socket.send(JSON.stringify({ type: 'ERROR', payload: { message: rl.reason, code: 'RATE_LIMITED' } }))
+        return
+      }
+
       let msg
       try {
         msg = JSON.parse(raw.toString())
@@ -34,16 +66,27 @@ module.exports = async function (fastify) {
         return
       }
 
+      // Per-type rate check (action cooldown)
+      const rlTyped = ratelimit.check(playerId, msg.type)
+      if (rlTyped.limited) {
+        socket.send(JSON.stringify({ type: 'ERROR', payload: { message: rlTyped.reason, code: 'RATE_LIMITED' } }))
+        return
+      }
+
       handleMessage(fastify, socket, request, msg)
     })
 
     socket.on('close', () => {
-      presence.delete(playerId)
-      fastify.log.info({ playerId }, 'WS disconnected')
-      broadcast({
-        type: 'PLAYER_LEFT',
-        payload: { playerId }
-      })
+      // Only remove from presence if this is still the current socket
+      if (presence.get(playerId) === socket) {
+        presence.delete(playerId)
+        ratelimit.remove(playerId)
+        fastify.log.info({ playerId }, 'WS disconnected')
+        broadcastToAll({
+          type: 'PLAYER_LEFT',
+          payload: { playerId }
+        })
+      }
     })
 
     socket.on('error', (err) => {
@@ -54,11 +97,34 @@ module.exports = async function (fastify) {
 
 function handleMessage (fastify, socket, request, msg) {
   const { type, payload } = msg
-  fastify.log.debug({ type, payload }, 'WS message received')
 
-  // Game message routing — wired in Phase 3+
-  const engine = require('../game/engine')
+  // Reject oversized payloads
+  const rawSize = JSON.stringify(payload).length
+  if (rawSize > 4096) {
+    socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Payload too large', code: 'PAYLOAD_TOO_LARGE' } }))
+    return
+  }
 
+  fastify.log.debug({ type, payloadSize: rawSize }, 'WS message received')
+
+  // ── Protocol handshake ──────────────────────────────────────────────────────
+  if (type === 'HELLO') {
+    const clientVersion = (payload && typeof payload.version === 'number') ? payload.version : 0
+    if (clientVersion !== PROTOCOL_VERSION) {
+      socket.send(JSON.stringify({
+        type: 'VERSION_MISMATCH',
+        payload: { serverVersion: PROTOCOL_VERSION, clientVersion, message: 'Reload the page to get the latest client.' }
+      }))
+      return
+    }
+    socket.send(JSON.stringify({
+      type: 'HELLO_ACK',
+      payload: { version: PROTOCOL_VERSION }
+    }))
+    return
+  }
+
+  // ── Game message routing ────────────────────────────────────────────────────
   switch (type) {
     case 'CREATE_GAME':
       engine.handleCreateGame(socket, request, payload, presence)
@@ -90,16 +156,15 @@ function handleMessage (fastify, socket, request, msg) {
       engine.handleCrossroadsChoice(socket, request, payload, presence)
       break
     default:
-      socket.send(JSON.stringify({ type: 'ERROR', payload: { message: `Unknown type: ${type}` } }))
+      fastify.log.warn({ type }, 'Unknown WS message type')
+      socket.send(JSON.stringify({ type: 'ERROR', payload: { message: `Unknown type: ${type}`, code: 'UNKNOWN_TYPE' } }))
   }
 }
 
-function broadcast (msg, excludeSocket) {
+function broadcastToAll (msg) {
   const data = JSON.stringify(msg)
   for (const sock of presence.values()) {
-    if (sock !== excludeSocket && sock.readyState === WS_OPEN) {
-      sock.send(data)
-    }
+    if (sock.readyState === WS_OPEN) sock.send(data)
   }
 }
 

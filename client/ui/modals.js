@@ -192,6 +192,15 @@ export function initModals (store, ws) {
         <p id="gameover-reason"></p>
       </div>
     </div>
+
+    <!-- Version mismatch modal -->
+    <div id="modal-version-mismatch" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <h3>⚠️ Update Required</h3>
+        <p id="version-mismatch-text">The server has been updated. Please reload the page to continue.</p>
+        <button class="btn btn-primary" id="version-reload-btn" style="margin-top:16px;width:100%">Reload Now</button>
+      </div>
+    </div>
   `
 
   // ─── Crossroads ────────────────────────────────────────────────────────────
@@ -345,6 +354,11 @@ export function initModals (store, ws) {
     })
   }
 
+  // ─── Version mismatch ──────────────────────────────────────────────────────
+  el.querySelector('#version-reload-btn').addEventListener('click', () => {
+    window.location.reload()
+  })
+
   // ─── Store subscription ────────────────────────────────────────────────────
   store.subscribe((state) => {
     const modal = state.ui.activeModal
@@ -414,6 +428,11 @@ export function initModals (store, ws) {
       }
       reasonEl.textContent = reasonMap[state.game.reason || ''] || ''
       el.querySelector('#modal-gameover').classList.remove('hidden')
+    }
+
+    // Version mismatch
+    if (modal === 'version_mismatch') {
+      el.querySelector('#modal-version-mismatch').classList.remove('hidden')
     }
   })
 }

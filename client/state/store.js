@@ -42,6 +42,24 @@ export function initStore () {
       case 'WS_RECONNECTING':
         state = { ...state, ws: { connected: false }, wsState: 'reconnecting' }
         break
+      case 'HELLO_ACK':
+        // Protocol handshake confirmed — nothing extra needed in state
+        break
+      case 'VERSION_MISMATCH':
+        state = {
+          ...state,
+          ws: { connected: false },
+          wsState: 'version_mismatch',
+          ui: {
+            ...state.ui,
+            activeModal: 'version_mismatch',
+            log: [...state.ui.log, {
+              ts: Date.now(),
+              text: `⚠️ Client is out of date (server v${(payload && payload.serverVersion) || '?'}). Please reload the page.`
+            }]
+          }
+        }
+        break
 
       // ─── Auth ───────────────────────────────────────────────────────────────
       case 'AUTH_SUCCESS':

@@ -1,16 +1,23 @@
 /**
  * Dead of Winter — WebSocket Client
+ * Phase 5: Protocol versioning (HELLO/HELLO_ACK), VERSION_MISMATCH handling.
  * Wraps the WS connection and dispatches messages to the store.
  */
+
+const PROTOCOL_VERSION = 1
+
 export class WsClient {
   constructor (store) {
     this.store = store
     this.ws = null
     this.reconnectDelay = 1000
     this._listeners = new Map()
+    // If a VERSION_MISMATCH is received, stop reconnecting
+    this._versionMismatch = false
   }
 
   connect () {
+    if (this._versionMismatch) return
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return
 
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -22,6 +29,8 @@ export class WsClient {
       console.log('[WS] Connected')
       this.reconnectDelay = 1000
       this.store.dispatch({ type: 'WS_CONNECTED' })
+      // Send protocol handshake immediately
+      this.ws.send(JSON.stringify({ type: 'HELLO', payload: { version: PROTOCOL_VERSION } }))
     })
 
     this.ws.addEventListener('message', (event) => {
@@ -36,8 +45,8 @@ export class WsClient {
     this.ws.addEventListener('close', (event) => {
       console.warn('[WS] Disconnected', event.code, event.reason)
       this.store.dispatch({ type: 'WS_DISCONNECTED' })
-      if (event.code !== 4001) {
-        // Reconnect unless kicked for auth
+      if (event.code !== 4001 && !this._versionMismatch) {
+        // Reconnect unless kicked for auth or version mismatch
         this.store.dispatch({ type: 'WS_RECONNECTING' })
         setTimeout(() => {
           this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000)
@@ -71,6 +80,12 @@ export class WsClient {
 
   _dispatch (msg) {
     const { type, payload } = msg
+
+    // Handle VERSION_MISMATCH at client level — stop all reconnect attempts
+    if (type === 'VERSION_MISMATCH') {
+      this._versionMismatch = true
+      console.error('[WS] Protocol version mismatch:', payload)
+    }
 
     // Route to store
     this.store.dispatch({ type, payload })
