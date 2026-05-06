@@ -1,0 +1,284 @@
+[
+  {
+    "id": "cr_001",
+    "title": "Old Debts",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when a survivor enters the Police Station.",
+    "narrative": "You find a wanted poster with a familiar face. It's your fellow survivor. Do you turn them in?",
+    "choices": [
+      { "id": "report", "text": "Report them", "outcome": "The survivor is exiled. +1 morale.", "moraleDelta": 1, "exile": true },
+      { "id": "ignore", "text": "Look the other way", "outcome": "They owe you a favour. Nothing changes for now.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_002",
+    "title": "Found Supplies",
+    "triggerEvent": "ACTION_SEARCH",
+    "triggerDescription": "Triggers when a survivor searches any location.",
+    "narrative": "You find a stash of supplies, but someone is already there protecting it.",
+    "choices": [
+      { "id": "take", "text": "Take them by force", "outcome": "Gain 2 food. Take 1 wound.", "food": 2, "wounds": 1 },
+      { "id": "share", "text": "Share with the stranger", "outcome": "Gain 1 food. The stranger joins the colony.", "food": 1, "moraleDelta": 1 },
+      { "id": "leave", "text": "Leave empty-handed", "outcome": "Nothing gained or lost.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_003",
+    "title": "A Stranger at the Gate",
+    "triggerEvent": "END_TURN",
+    "triggerDescription": "Triggers at the end of any player's turn.",
+    "narrative": "A desperate stranger knocks at the colony gate, begging for shelter.",
+    "choices": [
+      { "id": "let_in", "text": "Let them in", "outcome": "They join the colony but eat one food.", "moraleDelta": 1, "food": -1 },
+      { "id": "turn_away", "text": "Turn them away", "outcome": "Morale drops. One survivor is deeply troubled.", "moraleDelta": -1 }
+    ]
+  },
+  {
+    "id": "cr_004",
+    "title": "Frostbitten",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when a survivor moves in round 4 or later.",
+    "narrative": "The cold has gotten to you. Your fingers are numb and you can barely grip your weapon.",
+    "choices": [
+      { "id": "push_on", "text": "Push through the cold", "outcome": "Take 1 wound. Complete the action.", "wounds": 1 },
+      { "id": "rest", "text": "Rest and treat the wound", "outcome": "Spend a medicine card. No further action this turn.", "useMedicine": true }
+    ]
+  },
+  {
+    "id": "cr_005",
+    "title": "Midnight Scavenge",
+    "triggerEvent": "ACTION_SEARCH",
+    "triggerDescription": "Triggers when searching at night (round 3+).",
+    "narrative": "You slip out in the dark and find something valuable, but noise might attract zombies.",
+    "choices": [
+      { "id": "risky", "text": "Take the risk", "outcome": "Find a random item. Spawn 1 zombie at your location.", "randomItem": true, "spawnZombies": 1 },
+      { "id": "safe", "text": "Play it safe", "outcome": "Take 1 normal search result only.", "normalSearch": true }
+    ]
+  },
+  {
+    "id": "cr_006",
+    "title": "Hidden Cache",
+    "triggerEvent": "ACTION_SEARCH",
+    "triggerDescription": "Triggers when searching the Library.",
+    "narrative": "Behind a false wall, you find a hidden cache of supplies.",
+    "choices": [
+      { "id": "take_all", "text": "Take everything", "outcome": "Gain 2 random items, but your pack is now full.", "items": 2 },
+      { "id": "share_cache", "text": "Tell the colony", "outcome": "+1 morale and gain 1 item.", "moraleDelta": 1, "items": 1 }
+    ]
+  },
+  {
+    "id": "cr_007",
+    "title": "Guilt",
+    "triggerEvent": "ACTION_ATTACK",
+    "triggerDescription": "Triggers after a survivor kills their first zombie.",
+    "narrative": "The zombie bore a name tag. You recognize the name as someone from your past.",
+    "choices": [
+      { "id": "grieve", "text": "Take a moment to grieve", "outcome": "Lose 1 action die this round. +1 morale.", "loseActionDie": 1, "moraleDelta": 1 },
+      { "id": "move_on", "text": "Steel yourself", "outcome": "Continue without penalty.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_008",
+    "title": "The Informer",
+    "triggerEvent": "END_TURN",
+    "triggerDescription": "Triggers at end of round when 3+ players are in the colony.",
+    "narrative": "Word spreads that someone has been leaking colony movements to the bandits.",
+    "choices": [
+      { "id": "investigate", "text": "Launch an investigation", "outcome": "Spend 2 influence. Reveal one player's role.", "influenceCost": 2, "revealRole": true },
+      { "id": "ignore", "text": "Let it slide", "outcome": "The leak continues. -1 morale next round.", "moraleDelta": -1 }
+    ]
+  },
+  {
+    "id": "cr_009",
+    "title": "Abandoned Child",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when moving through the School.",
+    "narrative": "A small child hides under a desk, alone and terrified.",
+    "choices": [
+      { "id": "rescue", "text": "Rescue the child", "outcome": "+2 morale but the noise attracts 2 zombies.", "moraleDelta": 2, "spawnZombies": 2 },
+      { "id": "leave", "text": "Leave the child", "outcome": "-2 morale.", "moraleDelta": -2 }
+    ]
+  },
+  {
+    "id": "cr_010",
+    "title": "Territorial Survivors",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when entering the Grocery Store with 2+ zombies.",
+    "narrative": "A group of survivors has claimed the store for themselves and doesn't want company.",
+    "choices": [
+      { "id": "fight", "text": "Fight them off", "outcome": "Take 1 wound. Gain 2 food.", "wounds": 1, "food": 2 },
+      { "id": "negotiate", "text": "Negotiate", "outcome": "Lose 1 influence. Gain 1 food peacefully.", "influenceCost": 1, "food": 1 },
+      { "id": "retreat", "text": "Retreat", "outcome": "Nothing gained.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_011",
+    "title": "Signal Fire",
+    "triggerEvent": "ACTION_ITEM",
+    "triggerDescription": "Triggers when using a fuel item.",
+    "narrative": "You could use this fuel to signal for help, but it would draw every zombie in the area.",
+    "choices": [
+      { "id": "signal", "text": "Light the signal", "outcome": "+2 morale, spawn 4 zombies at colony.", "moraleDelta": 2, "spawnZombies": 4 },
+      { "id": "save", "text": "Save the fuel", "outcome": "Nothing changes.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_012",
+    "title": "Wounded Ally",
+    "triggerEvent": "ACTION_ATTACK",
+    "triggerDescription": "Triggers after a combat in which a survivor takes a wound.",
+    "narrative": "Your ally is badly hurt and begging you not to leave them behind.",
+    "choices": [
+      { "id": "carry", "text": "Carry them to safety", "outcome": "Move them to colony. You spend all remaining action dice.", "moveToColony": true },
+      { "id": "stabilise", "text": "Stabilise them", "outcome": "Use 1 medicine. They can act normally next round.", "useMedicine": true },
+      { "id": "leave", "text": "Leave them", "outcome": "They take 1 more wound. -2 morale.", "wounds": 1, "moraleDelta": -2 }
+    ]
+  },
+  {
+    "id": "cr_013",
+    "title": "Black Market",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when entering the Gas Station.",
+    "narrative": "A shady trader offers you contraband goods at a steep price.",
+    "choices": [
+      { "id": "buy", "text": "Buy from them", "outcome": "Spend 2 food. Gain 1 weapon and 1 medicine.", "food": -2, "items": ["weapon", "medicine"] },
+      { "id": "report", "text": "Report them to the colony", "outcome": "+1 morale. They disappear.", "moraleDelta": 1 },
+      { "id": "ignore", "text": "Walk past", "outcome": "Nothing changes.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_014",
+    "title": "Sacrifice",
+    "triggerEvent": "END_TURN",
+    "triggerDescription": "Triggers if any survivor has 3 or more wounds.",
+    "narrative": "A survivor with grievous wounds offers to act as a distraction to save the others.",
+    "choices": [
+      { "id": "accept", "text": "Accept their sacrifice", "outcome": "They are eliminated. Remove 2 zombies from their location. +1 morale.", "sacrifice": true, "killZombies": 2, "moraleDelta": 1 },
+      { "id": "refuse", "text": "Refuse and fight on", "outcome": "They survive at 1 wound. All survivors at location take 1 wound.", "healWounds": -2, "allWounds": 1 }
+    ]
+  },
+  {
+    "id": "cr_015",
+    "title": "Haunted Memories",
+    "triggerEvent": "ACTION_SEARCH",
+    "triggerDescription": "Triggers when searching the Hospital.",
+    "narrative": "You find a photo album amid the wreckage. The faces stare back at you.",
+    "choices": [
+      { "id": "keep", "text": "Keep the album", "outcome": "Nothing changes, but you feel connected to something.", "moraleDelta": 0 },
+      { "id": "share", "text": "Share with the colony", "outcome": "+1 morale.", "moraleDelta": 1 },
+      { "id": "burn", "text": "Burn it", "outcome": "The pain fades. -1 wound.", "wounds": -1 }
+    ]
+  },
+  {
+    "id": "cr_016",
+    "title": "Food Fight",
+    "triggerEvent": "ACTION_ITEM",
+    "triggerDescription": "Triggers when a food item is played at the colony.",
+    "narrative": "Two survivors argue over the last can of beans. It nearly comes to blows.",
+    "choices": [
+      { "id": "intervene", "text": "Break it up", "outcome": "Spend 1 influence. The argument ends peacefully.", "influenceCost": 1 },
+      { "id": "let_fight", "text": "Let them fight", "outcome": "One takes 1 wound. The other gains +1 influence.", "wounds": 1, "influenceGain": 1 }
+    ]
+  },
+  {
+    "id": "cr_017",
+    "title": "Zombie Horde Incoming",
+    "triggerEvent": "END_TURN",
+    "triggerDescription": "Triggers at the end of round 5.",
+    "narrative": "Scouts report a massive horde is moving toward the colony.",
+    "choices": [
+      { "id": "fortify", "text": "Fortify the colony", "outcome": "Spend 2 tools. +2 barricades at colony.", "toolCost": 2, "colonyBarricade": 2 },
+      { "id": "evacuate", "text": "Prepare to evacuate", "outcome": "+1 fuel to colony stockpile.", "fuel": 1 },
+      { "id": "ignore", "text": "Hope for the best", "outcome": "+3 zombies at colony next round.", "spawnZombies": 3 }
+    ]
+  },
+  {
+    "id": "cr_018",
+    "title": "Lost in the Dark",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when moving at night (round 5+).",
+    "narrative": "Visibility is near zero. You take a wrong turn and end up somewhere unexpected.",
+    "choices": [
+      { "id": "push", "text": "Push forward blindly", "outcome": "Move to a random location instead of intended.", "randomMove": true },
+      { "id": "wait", "text": "Wait for daylight", "outcome": "Lose this movement action. Stay in place.", "loseAction": true }
+    ]
+  },
+  {
+    "id": "cr_019",
+    "title": "An Unlikely Friend",
+    "triggerEvent": "ACTION_ATTACK",
+    "triggerDescription": "Triggers after clearing a location of zombies.",
+    "narrative": "As the last zombie falls, you notice a tame dog emerge from under a car.",
+    "choices": [
+      { "id": "adopt", "text": "Take the dog in", "outcome": "+2 morale but uses 1 food per round.", "moraleDelta": 2, "foodUpkeep": 1 },
+      { "id": "leave", "text": "Leave the dog", "outcome": "Nothing changes.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_020",
+    "title": "Power Struggle",
+    "triggerEvent": "END_TURN",
+    "triggerDescription": "Triggers when two players each have 4+ influence.",
+    "narrative": "Two strong personalities clash over how the colony should be run.",
+    "choices": [
+      { "id": "side_a", "text": "Side with Player A", "outcome": "Player A gains 1 morale. Player B loses 1 influence.", "moraleDelta": 1 },
+      { "id": "side_b", "text": "Side with Player B", "outcome": "Player B gains 1 morale. Player A loses 1 influence.", "moraleDelta": 1 },
+      { "id": "mediate", "text": "Mediate", "outcome": "Both lose 1 influence, +1 morale.", "moraleDelta": 1 }
+    ]
+  },
+  {
+    "id": "cr_021",
+    "title": "Supply Drop",
+    "triggerEvent": "ACTION_SEARCH",
+    "triggerDescription": "Triggers on a search result of 6.",
+    "narrative": "A military supply drop lands nearby with a loud crash.",
+    "choices": [
+      { "id": "rush", "text": "Rush to it", "outcome": "Gain 3 random items but spawn 2 zombies.", "items": 3, "spawnZombies": 2 },
+      { "id": "wait", "text": "Wait for the noise to die down", "outcome": "Gain 2 random items safely.", "items": 2 }
+    ]
+  },
+  {
+    "id": "cr_022",
+    "title": "Hidden Betrayer",
+    "triggerEvent": "END_TURN",
+    "triggerDescription": "Triggers at the end of round 6 if no betrayer has been exiled.",
+    "narrative": "Suspicion grows. Someone has been working against the group.",
+    "choices": [
+      { "id": "accuse", "text": "Publicly accuse someone", "outcome": "Hold an immediate exile vote.", "exileVote": true },
+      { "id": "set_trap", "text": "Set a trap", "outcome": "-1 morale now. If betrayer acts next round, they are revealed.", "moraleDelta": -1, "betrayerTrap": true }
+    ]
+  },
+  {
+    "id": "cr_023",
+    "title": "Radio Transmission",
+    "triggerEvent": "ACTION_ITEM",
+    "triggerDescription": "Triggers when using a Radio item.",
+    "narrative": "Through the static, you pick up a distress signal from another survivor group.",
+    "choices": [
+      { "id": "respond", "text": "Respond to the signal", "outcome": "They arrive next round. +1 survivor, +1 morale, +1 zombie spawn.", "moraleDelta": 1, "spawnZombies": 1 },
+      { "id": "ignore", "text": "Ignore it", "outcome": "Nothing changes.", "moraleDelta": 0 }
+    ]
+  },
+  {
+    "id": "cr_024",
+    "title": "Zombie Swarm",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when 5+ zombies are at a single location.",
+    "narrative": "The horde is bigger than you thought. Everywhere you turn, there are dead eyes staring.",
+    "choices": [
+      { "id": "hold", "text": "Hold your ground", "outcome": "Take 1 wound. Kill 1 zombie.", "wounds": 1, "killZombies": 1 },
+      { "id": "run", "text": "Run for it", "outcome": "Move away without killing. No wounds.", "retreat": true }
+    ]
+  },
+  {
+    "id": "cr_025",
+    "title": "The Last Doctor",
+    "triggerEvent": "ACTION_MOVE",
+    "triggerDescription": "Triggers when a character with medical ability enters the Hospital.",
+    "narrative": "A doctor from before the outbreak is treating survivors in a make-shift ward.",
+    "choices": [
+      { "id": "recruit", "text": "Invite them to the colony", "outcome": "+2 morale. Medicine items count double next round.", "moraleDelta": 2 },
+      { "id": "leave", "text": "Leave them to their work", "outcome": "Nothing changes.", "moraleDelta": 0 }
+    ]
+  }
+]

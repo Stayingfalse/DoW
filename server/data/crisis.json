@@ -1,0 +1,110 @@
+[
+  {
+    "id": "crisis_food_1",
+    "name": "Feeding the Hungry",
+    "description": "The colony is running low on food. Everyone must contribute.",
+    "contributionType": "food",
+    "threshold": 2,
+    "passEffect": { "description": "Colony is fed. +1 morale.", "moraleDelta": 1 },
+    "failEffect": { "description": "Survivors go hungry. -1 morale.", "moraleDelta": -1 }
+  },
+  {
+    "id": "crisis_food_2",
+    "name": "Winter Rations",
+    "description": "Supplies are critically short. The colony needs 3 food.",
+    "contributionType": "food",
+    "threshold": 3,
+    "passEffect": { "description": "Rations distributed. No morale loss.", "moraleDelta": 0 },
+    "failEffect": { "description": "Starvation sets in. -2 morale.", "moraleDelta": -2 }
+  },
+  {
+    "id": "crisis_medicine_1",
+    "name": "Outbreak",
+    "description": "A disease spreads through the colony. 2 medicine needed.",
+    "contributionType": "medicine",
+    "threshold": 2,
+    "passEffect": { "description": "Disease contained.", "moraleDelta": 0 },
+    "failEffect": { "description": "Survivors succumb. -2 morale, 1 random survivor takes a wound.", "moraleDelta": -2, "wounds": 1 }
+  },
+  {
+    "id": "crisis_medicine_2",
+    "name": "Frostbite",
+    "description": "The cold is unbearable. Survivors need medicine to treat frostbite.",
+    "contributionType": "medicine",
+    "threshold": 2,
+    "passEffect": { "description": "Treated. Survivors recover.", "moraleDelta": 0 },
+    "failEffect": { "description": "Frostbite spreads. Each survivor takes 1 wound.", "moraleDelta": -1, "allWounds": 1 }
+  },
+  {
+    "id": "crisis_fuel_1",
+    "name": "Power Outage",
+    "description": "The generator is out of fuel. 2 fuel needed.",
+    "contributionType": "fuel",
+    "threshold": 2,
+    "passEffect": { "description": "Power restored. Colony stays warm.", "moraleDelta": 0 },
+    "failEffect": { "description": "Power out. -1 morale and +1 zombie spawns next round.", "moraleDelta": -1, "extraZombies": 1 }
+  },
+  {
+    "id": "crisis_fuel_2",
+    "name": "Vehicle Run",
+    "description": "A supply run vehicle needs fuel. 3 fuel required.",
+    "contributionType": "fuel",
+    "threshold": 3,
+    "passEffect": { "description": "Run successful. +2 food to colony.", "moraleDelta": 0, "food": 2 },
+    "failEffect": { "description": "Run fails. -1 morale.", "moraleDelta": -1 }
+  },
+  {
+    "id": "crisis_weapon_1",
+    "name": "Breach",
+    "description": "Zombies are breaking through the perimeter. 2 weapons needed to stop them.",
+    "contributionType": "weapon",
+    "threshold": 2,
+    "passEffect": { "description": "Breach repelled.", "moraleDelta": 1 },
+    "failEffect": { "description": "Zombies pour in. +3 zombies at colony, -1 morale.", "moraleDelta": -1, "colonyZombies": 3 }
+  },
+  {
+    "id": "crisis_weapon_2",
+    "name": "Bandit Threat",
+    "description": "Armed bandits are threatening the colony. 3 weapons required to deter them.",
+    "contributionType": "weapon",
+    "threshold": 3,
+    "passEffect": { "description": "Bandits driven off.", "moraleDelta": 1 },
+    "failEffect": { "description": "Bandits steal supplies. -1 morale, lose 2 food.", "moraleDelta": -1, "loseFood": 2 }
+  },
+  {
+    "id": "crisis_tool_1",
+    "name": "Structural Damage",
+    "description": "The colony walls need urgent repair. 2 tools needed.",
+    "contributionType": "tool",
+    "threshold": 2,
+    "passEffect": { "description": "Walls repaired. +1 barricade at colony.", "moraleDelta": 0, "colonyBarricade": 1 },
+    "failEffect": { "description": "Walls weaken. Next zombie at colony ignores all barricades.", "moraleDelta": 0, "wallsWeak": true }
+  },
+  {
+    "id": "crisis_tool_2",
+    "name": "Broken Equipment",
+    "description": "Critical equipment has broken down. 2 tools needed to fix it.",
+    "contributionType": "tool",
+    "threshold": 2,
+    "passEffect": { "description": "Equipment fixed.", "moraleDelta": 0 },
+    "failEffect": { "description": "Equipment remains broken. Searches yield one fewer item next round.", "moraleDelta": 0, "searchPenalty": 1 }
+  },
+  {
+    "id": "crisis_morale_1",
+    "name": "Fear and Doubt",
+    "description": "Survivors are losing hope. Something must be done to boost morale.",
+    "contributionType": "any",
+    "threshold": 3,
+    "passEffect": { "description": "Hope renewed. +1 morale.", "moraleDelta": 1 },
+    "failEffect": { "description": "Despair spreads. -2 morale.", "moraleDelta": -2 }
+  },
+  {
+    "id": "crisis_morale_2",
+    "name": "Dwindling Faith",
+    "description": "Trust in leadership is eroding. Contribute any 4 cards to show unity.",
+    "contributionType": "any",
+    "threshold": 4,
+    "passEffect": { "description": "Unity restored. No morale loss.", "moraleDelta": 0 },
+    "failEffect": { "description": "Colony fractures. -2 morale, 1 exile vote triggered.", "moraleDelta": -2, "exileVote": true }
+  }
+]

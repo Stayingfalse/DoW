@@ -1,0 +1,72 @@
+[
+  {
+    "id": "colony",
+    "name": "The Colony",
+    "description": "Home base. Survivors here contribute to the food supply and colony morale.",
+    "capacity": 99,
+    "startingZombies": 0,
+    "startingBarricades": 0,
+    "searchCategories": ["food", "junk"],
+    "specialRules": ["colony_actions"]
+  },
+  {
+    "id": "gas_station",
+    "name": "Gas Station",
+    "description": "Fuel and tools can be found here, but it attracts zombies.",
+    "capacity": 4,
+    "startingZombies": 1,
+    "startingBarricades": 0,
+    "searchCategories": ["fuel", "tool", "junk"],
+    "specialRules": []
+  },
+  {
+    "id": "grocery_store",
+    "name": "Grocery Store",
+    "description": "Best source of food, but shelves are often bare.",
+    "capacity": 4,
+    "startingZombies": 2,
+    "startingBarricades": 0,
+    "searchCategories": ["food", "medicine", "junk"],
+    "specialRules": []
+  },
+  {
+    "id": "hospital",
+    "name": "Hospital",
+    "description": "Medicine and medical tools are plentiful here.",
+    "capacity": 4,
+    "startingZombies": 2,
+    "startingBarricades": 0,
+    "searchCategories": ["medicine", "tool", "junk"],
+    "specialRules": ["double_medicine"]
+  },
+  {
+    "id": "police_station",
+    "name": "Police Station",
+    "description": "Weapons and useful tools for holding the perimeter.",
+    "capacity": 4,
+    "startingZombies": 1,
+    "startingBarricades": 1,
+    "searchCategories": ["weapon", "tool", "junk"],
+    "specialRules": []
+  },
+  {
+    "id": "school",
+    "name": "School",
+    "description": "A large building with varied supplies but many hiding places for zombies.",
+    "capacity": 4,
+    "startingZombies": 2,
+    "startingBarricades": 0,
+    "searchCategories": ["food", "tool", "junk"],
+    "specialRules": []
+  },
+  {
+    "id": "library",
+    "name": "Library",
+    "description": "Knowledge is power — crossroads cards may be drawn here.",
+    "capacity": 4,
+    "startingZombies": 1,
+    "startingBarricades": 0,
+    "searchCategories": ["tool", "junk"],
+    "specialRules": ["crossroads_draw"]
+  }
+]

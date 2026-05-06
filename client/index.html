@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>Dead of Winter</title>
+  <link rel="manifest" href="/manifest.json" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    #canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* UI layers sit above canvas */
+    #ui-root {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #ui-root > * {
+      pointer-events: auto;
+    }
+
+    /* Loading screen */
+    #loading {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: #0d1117;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+
+    #loading h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #c9d1d9;
+    }
+
+    #loading h1 span {
+      color: #58a6ff;
+    }
+
+    #loading-bar-wrap {
+      width: 320px;
+      height: 4px;
+      background: #21262d;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #loading-bar {
+      height: 100%;
+      width: 0%;
+      background: #58a6ff;
+      transition: width 0.3s ease;
+    }
+
+    #loading-text {
+      font-size: 0.85rem;
+      color: #8b949e;
+      letter-spacing: 0.05em;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading screen -->
+  <div id="loading">
+    <h1>Dead <span>of</span> Winter</h1>
+    <div id="loading-bar-wrap">
+      <div id="loading-bar"></div>
+    </div>
+    <div id="loading-text">Initialising...</div>
+  </div>
+
+  <!-- Three.js canvas mount point -->
+  <div id="canvas-container"></div>
+
+  <!-- UI overlays (all populated by JS) -->
+  <div id="ui-root">
+    <div id="lobby-overlay"></div>
+    <div id="hud-overlay"></div>
+    <div id="cards-overlay"></div>
+    <div id="modals-overlay"></div>
+    <div id="log-overlay"></div>
+  </div>
+
+  <!-- CDN scripts — no bundler -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- Tone.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tone@14.9.13/build/Tone.js"></script>
+
+  <!-- App entry point (ES module) -->
+  <script type="module" src="/main.js"></script>
+
+</body>
+</html>
