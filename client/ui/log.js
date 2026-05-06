@@ -2,6 +2,7 @@
  * Dead of Winter — Event Log
  * Collapsible sidebar, plain text event narration.
  */
+import { escHtml } from '../utils/escape-html.js'
 
 export function initLog (store) {
   const el = document.getElementById('log-overlay')
@@ -111,7 +112,3 @@ export function initLog (store) {
 }
 
 function pad (n) { return String(n).padStart(2, '0') }
-
-function escHtml (str) {
-  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-}

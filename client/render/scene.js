@@ -92,12 +92,13 @@ export async function initScene (container, store) {
 
   // ─── Render loop ───────────────────────────────────────────────────────────
   let rafId = null
+  let elapsed = 0
   const clock = new THREE.Clock()
 
   function tick () {
     rafId = requestAnimationFrame(tick)
     const delta = clock.getDelta()
-    elapsed = (elapsed || 0) + delta
+    elapsed += delta
     particles.update(delta)
     board.update(delta)
     lighting.update(delta)

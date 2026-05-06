@@ -2,6 +2,7 @@
  * Dead of Winter — Modals
  * Character sheet, action radial menu, crisis panel, crossroads, exile vote, game over.
  */
+import { escHtml } from '../utils/escape-html.js'
 
 export function initModals (store, ws) {
   const el = document.getElementById('modals-overlay')
@@ -71,6 +72,64 @@ export function initModals (store, ws) {
     }
     .game-over-win { color: #3fb950; }
     .game-over-loss { color: #f85149; }
+    /* Crisis phase panel */
+    #crisis-panel {
+      display: none;
+      position: fixed;
+      bottom: 164px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #161b22;
+      border: 1px solid #4d1d1d;
+      border-radius: 10px;
+      padding: 18px 28px;
+      min-width: 360px;
+      max-width: 500px;
+      z-index: 55;
+    }
+    .crisis-panel-eyebrow {
+      font-size: 0.65rem;
+      color: #ffa198;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+    .crisis-panel-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e6edf3;
+      margin-bottom: 4px;
+    }
+    .crisis-panel-desc {
+      font-size: 0.85rem;
+      color: #8b949e;
+      margin-bottom: 10px;
+    }
+    .crisis-panel-info {
+      font-size: 0.78rem;
+      color: #ffa198;
+    }
+    /* Action picker steps */
+    .picker-hint {
+      color: #8b949e;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .picker-loc-meta {
+      color: #8b949e;
+      display: block;
+      margin-top: 2px;
+    }
+    .picker-survivor-meta {
+      color: #8b949e;
+      display: block;
+      margin-top: 2px;
+    }
+    #action-picker-back {
+      background: #0d1117;
+      border-color: #484f58;
+      color: #8b949e;
+    }
   `
   const styleEl = document.createElement('style')
   styleEl.textContent = styles
@@ -88,11 +147,11 @@ export function initModals (store, ws) {
     </div>
 
     <!-- Crisis phase panel (shown during crisis phase, not a blocking modal) -->
-    <div id="crisis-panel" style="display:none;position:fixed;bottom:164px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #4d1d1d;border-radius:10px;padding:18px 28px;min-width:360px;max-width:500px;z-index:55;">
-      <div style="font-size:0.65rem;color:#ffa198;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Active Crisis</div>
-      <div id="crisis-name" style="font-size:1rem;font-weight:700;color:#e6edf3;margin-bottom:4px;"></div>
-      <div id="crisis-desc" style="font-size:0.85rem;color:#8b949e;margin-bottom:10px;"></div>
-      <div id="crisis-type-info" style="font-size:0.78rem;color:#ffa198;"></div>
+    <div id="crisis-panel">
+      <div class="crisis-panel-eyebrow">Active Crisis</div>
+      <div id="crisis-name" class="crisis-panel-name"></div>
+      <div id="crisis-desc" class="crisis-panel-desc"></div>
+      <div id="crisis-type-info" class="crisis-panel-info"></div>
     </div>
 
     <!-- Crisis reveal modal -->
@@ -110,15 +169,15 @@ export function initModals (store, ws) {
         <button class="modal-close" id="action-picker-close">✕</button>
         <h3 id="action-picker-title">Choose Action</h3>
         <div id="action-picker-step1">
-          <p style="color:#8b949e;font-size:0.85rem;margin-bottom:12px;">Select one of your survivors:</p>
+          <p class="picker-hint">Select one of your survivors:</p>
           <div class="modal-choices" id="survivor-choices"></div>
         </div>
         <div id="action-picker-step2" style="display:none">
-          <p style="color:#8b949e;font-size:0.85rem;margin-bottom:12px;" id="action-picker-step2-label">Select a location:</p>
+          <p class="picker-hint" id="action-picker-step2-label">Select a location:</p>
           <div class="modal-choices" id="location-choices"></div>
         </div>
         <div style="margin-top:12px">
-          <button class="modal-choice-btn" id="action-picker-back" style="display:none;background:#0d1117;border-color:#484f58;color:#8b949e">
+          <button class="modal-choice-btn" id="action-picker-back" style="display:none">
             ← Back
           </button>
         </div>
@@ -202,10 +261,10 @@ export function initModals (store, ws) {
       return `
         <button class="modal-choice-btn" data-survivor="${escHtml(sid)}">
           👤 ${escHtml(sid)}
-          <small style="color:#8b949e;display:block;margin-top:2px">📍 ${escHtml(locName)}</small>
+          <small class="picker-survivor-meta">📍 ${escHtml(locName)}</small>
         </button>
       `
-    }).join('') || '<p style="color:#484f58;font-size:0.85rem">No survivors assigned.</p>'
+    }).join('') || '<p class="picker-hint">No survivors assigned.</p>'
 
     survivorChoicesEl.querySelectorAll('.modal-choice-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -252,7 +311,7 @@ export function initModals (store, ws) {
       return `
         <button class="modal-choice-btn" data-loc="${escHtml(locId)}">
           ${escHtml(name)}
-          <small style="color:#8b949e;display:block;margin-top:2px">
+          <small class="picker-loc-meta">
             🧟 ${zombies} zombies · 🪵 ${barricades} barricades
           </small>
         </button>
@@ -285,7 +344,6 @@ export function initModals (store, ws) {
     } else {
       crisisPanel.style.display = 'none'
     }
-
     // Action picker
     if (modal === 'action_picker' && state.ui.actionPicker) {
       openActionPicker(state.ui.actionPicker.action, state)
@@ -339,8 +397,4 @@ export function initModals (store, ws) {
       el.querySelector('#modal-gameover').classList.remove('hidden')
     }
   })
-}
-
-function escHtml (str) {
-  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }

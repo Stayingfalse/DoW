@@ -1,7 +1,8 @@
 /**
  * Dead of Winter — HUD
- * Morale track, round track, phase indicator, active player.
+ * Morale track, round track, phase indicator, player turn-order strip.
  */
+import { escHtml } from '../utils/escape-html.js'
 
 export function initHud (store) {
   const el = document.getElementById('hud-overlay')
@@ -211,8 +212,4 @@ export function initHud (store) {
       playerStrip.classList.add('hidden')
     }
   })
-}
-
-function escHtml (str) {
-  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }

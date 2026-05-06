@@ -3,6 +3,7 @@
  * Phase 4: Fan-layout card hand with type colour-coding, crisis contribution,
  *          and item-use affordances.
  */
+import { escHtml } from '../utils/escape-html.js'
 
 const TYPE_COLOURS = {
   food:     { bg: '#0f2e0f', border: '#3fb950', accent: '#3fb950', label: '#56d364' },
@@ -284,8 +285,4 @@ export function initCards (store, ws) {
 
     renderHand(hand, phase, isMyTurn)
   })
-}
-
-function escHtml (str) {
-  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }

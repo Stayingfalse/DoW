@@ -2,6 +2,7 @@
  * Dead of Winter — Lobby UI
  * Password entry, display name, create/join game, presence list.
  */
+import { escHtml } from '../utils/escape-html.js'
 
 export function initLobby (store, ws) {
   const el = document.getElementById('lobby-overlay')
@@ -232,8 +233,4 @@ export function initLobby (store, ws) {
       .map(p => `<div class="presence-item">${escHtml(p.displayName)}</div>`)
       .join('')
   })
-}
-
-function escHtml (str) {
-  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }
