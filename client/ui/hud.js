@@ -135,7 +135,7 @@ export function initHud (store) {
     }).join('')
 
     // Food supply
-    foodEl.textContent = game.food ?? 0
+    foodEl.textContent = game.food || 0
 
     // Phase badge
     const phase = game.phase || 'setup'
