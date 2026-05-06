@@ -1,7 +1,6 @@
 /* Dead of Winter — Service Worker */
-const CACHE_VERSION = 'dow-v1'
+const CACHE_VERSION = 'dow-v2'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
-const CDN_CACHE = `${CACHE_VERSION}-cdn`
 
 const STATIC_ASSETS = [
   '/',
@@ -25,11 +24,9 @@ const STATIC_ASSETS = [
   '/ui/hud.js',
   '/ui/cards.js',
   '/ui/modals.js',
-  '/ui/log.js'
-]
-
-const CDN_ORIGINS = [
-  'cdn.jsdelivr.net'
+  '/ui/log.js',
+  '/vendor/three.module.js',
+  '/vendor/Tone.js'
 ]
 
 const NETWORK_FIRST_PATTERNS = [
@@ -53,7 +50,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key.startsWith('dow-') && key !== STATIC_CACHE && key !== CDN_CACHE)
+          .filter((key) => key.startsWith('dow-') && key !== STATIC_CACHE)
           .map((key) => caches.delete(key))
       )
     )
@@ -76,13 +73,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Cache-first for CDN assets
-  if (CDN_ORIGINS.some((origin) => url.hostname.includes(origin))) {
-    event.respondWith(cacheFirst(request, CDN_CACHE))
-    return
-  }
-
-  // Cache-first for everything else (static assets)
+  // Cache-first for everything else (static assets + vendor)
   event.respondWith(cacheFirst(request, STATIC_CACHE))
 })
 

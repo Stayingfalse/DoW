@@ -116,18 +116,18 @@
     <div id="log-overlay"></div>
   </div>
 
-  <!-- CDN scripts — no bundler -->
+  <!-- CDN scripts — loaded from local vendor (no bundler) -->
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+      "three": "/vendor/three.module.js",
+      "three/addons/": "/vendor/three-addons/"
     }
   }
   </script>
 
   <!-- Tone.js -->
-  <script src="https://cdn.jsdelivr.net/npm/tone@14.9.13/build/Tone.js"></script>
+  <script src="/vendor/Tone.js"></script>
 
   <!-- App entry point (ES module) -->
   <script type="module" src="/main.js"></script>

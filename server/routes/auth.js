@@ -20,10 +20,13 @@ module.exports = async function (fastify) {
   }, async (request, reply) => {
     const { displayName, password } = request.body
 
-    // Constant-time comparison to prevent timing attacks
-    const expected = process.env.LOBBY_PASSWORD || ''
-    const match = expected.length > 0 &&
-      password.length === expected.length &&
+    // Constant-time comparison to prevent timing attacks.
+    // Reject immediately if LOBBY_PASSWORD is not configured.
+    const expected = process.env.LOBBY_PASSWORD
+    if (!expected) {
+      return reply.code(503).send({ error: 'Server not configured — LOBBY_PASSWORD not set' })
+    }
+    const match = password.length === expected.length &&
       crypto.timingSafeEqual(Buffer.from(password), Buffer.from(expected))
 
     if (!match) {

@@ -16,7 +16,7 @@ module.exports = fp(async function (fastify) {
       httpOnly: true,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 86400 // 24 hours
+      maxAge: 86400000 // 24 hours (milliseconds)
     },
     saveUninitialized: false
   })
