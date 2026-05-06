@@ -1,5 +1,13 @@
 # Dead of Winter (DoW)
 
+**Survive the apocalypse, together or alone.** Dead of Winter drops you and your friends into a frozen wasteland where every decision matters. Work together to gather supplies, fend off zombies, and complete missions—but watch your back, because betrayal lurks in every shadow. Experience a rich 3D environment with atmospheric lighting, swirling blizzards, and immersive sound that brings the dead of winter to life right in your browser.
+
+Built for instant play—no downloads, no installs. Jump in from any device, reconnect seamlessly if you lose signal, and enjoy a smooth multiplayer experience that just works. Whether you're strategizing with friends or testing your luck in solo mode, every game unfolds in a beautifully rendered 3D world that captures the tension and thrill of surviving against all odds.
+
+---
+
+## Technical Overview
+
 A browser-first, multiplayer Dead of Winter–inspired experience: Fastify + SQLite on the server, vanilla JS + Three.js on the client, delivered as a PWA (no bundler).
 
 ## Local development
