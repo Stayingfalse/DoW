@@ -15,6 +15,12 @@ const WINDOW_MS = 1000 // 1 second rolling window
 const MAX_MESSAGES_PER_WINDOW = 30 // max WS messages per second per player
 const ACTION_COOLDOWN_MS = 300 // min ms between game-mutating actions
 
+/**
+ * Sentinel value for type-agnostic (burst-window only) rate checks.
+ * Using a symbol-like constant avoids colliding with real message types.
+ */
+const GENERIC_TYPE = '__generic__'
+
 // Game-mutating action types that share the action cooldown
 const MUTATING_TYPES = new Set([
   'ACTION_MOVE', 'ACTION_ATTACK', 'ACTION_SEARCH', 'ACTION_ITEM',
@@ -58,7 +64,8 @@ function check (playerId, type) {
   // Per-action cooldown check
   if (MUTATING_TYPES.has(type)) {
     if (now - entry.lastActionAt < ACTION_COOLDOWN_MS) {
-      return { limited: true, reason: `Action too fast — wait ${ACTION_COOLDOWN_MS}ms between actions` }
+      const waitSec = ((ACTION_COOLDOWN_MS - (now - entry.lastActionAt)) / 1000).toFixed(1)
+      return { limited: true, reason: `Action too fast — wait ${waitSec}s between actions` }
     }
     entry.lastActionAt = now
   }
@@ -74,4 +81,4 @@ function remove (playerId) {
   state.delete(playerId)
 }
 
-module.exports = { check, remove }
+module.exports = { check, remove, GENERIC_TYPE }

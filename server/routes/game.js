@@ -2,6 +2,7 @@
 
 const WS_OPEN = 1 // WebSocket.OPEN
 const PROTOCOL_VERSION = 1
+const MAX_PAYLOAD_BYTES = 4096 // max allowed WS message payload size
 
 // In-memory presence map: playerId -> WebSocket
 const presence = new Map()
@@ -51,8 +52,8 @@ module.exports = async function (fastify) {
     }
 
     socket.on('message', (raw) => {
-      // Rate limiting
-      const rl = ratelimit.check(playerId, '')
+      // Rate limiting — first pass: general burst window (type-agnostic)
+      const rl = ratelimit.check(playerId, ratelimit.GENERIC_TYPE)
       if (rl.limited) {
         socket.send(JSON.stringify({ type: 'ERROR', payload: { message: rl.reason, code: 'RATE_LIMITED' } }))
         return
@@ -100,7 +101,7 @@ function handleMessage (fastify, socket, request, msg) {
 
   // Reject oversized payloads
   const rawSize = JSON.stringify(payload).length
-  if (rawSize > 4096) {
+  if (rawSize > MAX_PAYLOAD_BYTES) {
     socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Payload too large', code: 'PAYLOAD_TOO_LARGE' } }))
     return
   }

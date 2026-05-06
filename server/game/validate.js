@@ -12,6 +12,9 @@ const VALID_LOCATION_IDS = new Set([
   'police_station', 'school', 'library'
 ])
 
+/** Maximum number of cards a player may contribute in a single crisis action. */
+const MAX_CARDS_PER_CONTRIBUTION = 10
+
 /**
  * Ensure `value` is a non-empty string of reasonable length.
  * @param {*} value
@@ -81,8 +84,8 @@ function requireCardsInHand (state, playerId, cardIds) {
   if (!Array.isArray(cardIds)) {
     return { ok: false, error: 'cards must be an array' }
   }
-  if (cardIds.length > 10) {
-    return { ok: false, error: 'Too many cards (max 10)' }
+  if (cardIds.length > MAX_CARDS_PER_CONTRIBUTION) {
+    return { ok: false, error: `Too many cards (max ${MAX_CARDS_PER_CONTRIBUTION})` }
   }
   const player = (state.players || []).find(p => p.id === playerId)
   if (!player) return { ok: false, error: 'Player not found in game' }
