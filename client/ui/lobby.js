@@ -176,6 +176,57 @@ export function initLobby (store, ws) {
   const presenceList = el.querySelector('#presence-list')
   const startGameBtn = el.querySelector('#lobby-start-btn')
 
+  function requireConnection () {
+    if (store.getState().ws.connected) return true
+    errorEl.textContent = 'Connecting to game server…'
+    return false
+  }
+
+  function syncLobbyControls (state) {
+    const connected = state.ws && state.ws.connected
+    const inSetupGame = state.game && state.game.phase === 'setup'
+
+    createBtn.disabled = !connected
+    joinGameBtn.disabled = !connected
+    startGameBtn.disabled = !(connected && inSetupGame)
+
+    if (state.auth && state.auth.isAuthenticated && !connected) {
+      errorEl.textContent = 'Connecting to game server…'
+    } else if (connected && errorEl.textContent === 'Connecting to game server…') {
+      errorEl.textContent = ''
+    }
+
+    if (state.game && state.game.id) {
+      gameIdInput.value = state.game.id
+    }
+
+    const setupPlayers = inSetupGame
+      ? (state.game.players || []).map(player => ({
+          id: player.id,
+          displayName: player.displayName
+        }))
+      : []
+
+    const visiblePlayers = setupPlayers.length > 0
+      ? setupPlayers
+      : [...(state.lobby.players || [])]
+
+    if (state.auth && state.auth.isAuthenticated) {
+      const selfId = state.auth.playerId
+      const alreadyListed = visiblePlayers.some(player => (player.id || player.playerId) === selfId)
+      if (!alreadyListed) {
+        visiblePlayers.unshift({
+          playerId: selfId,
+          displayName: state.auth.displayName
+        })
+      }
+    }
+
+    presenceList.innerHTML = visiblePlayers
+      .map(player => `<div class="presence-item">${escHtml(player.displayName)}</div>`)
+      .join('')
+  }
+
   joinBtn.addEventListener('click', async () => {
     errorEl.textContent = ''
     const displayName = nameInput.value.trim()
@@ -206,17 +257,28 @@ export function initLobby (store, ws) {
   })
 
   createBtn.addEventListener('click', () => {
+    if (!requireConnection()) return
     ws.send('CREATE_GAME', { scenario: scenarioSelect.value })
   })
 
   joinGameBtn.addEventListener('click', () => {
+    if (!requireConnection()) return
     const gameId = gameIdInput.value.trim()
     if (!gameId) return
     ws.send('JOIN_GAME', { gameId })
   })
 
   startGameBtn.addEventListener('click', () => {
+    if (!requireConnection()) return
     ws.send('START_GAME', {})
+  })
+
+  ws.on('ERROR', (payload) => {
+    errorEl.textContent = (payload && payload.message) || 'Request failed.'
+  })
+
+  ws.on('GAME_STATE', () => {
+    errorEl.textContent = ''
   })
 
   // Hide lobby when game starts
@@ -224,13 +286,8 @@ export function initLobby (store, ws) {
     if (state.game && state.game.phase !== 'setup') {
       document.getElementById('lobby').classList.add('hidden')
     }
-    // Enable Start Game button once player is in a game (setup phase)
-    if (state.game && state.game.phase === 'setup') {
-      startGameBtn.disabled = false
-    }
-    // Update presence list
-    presenceList.innerHTML = (state.lobby.players || [])
-      .map(p => `<div class="presence-item">${escHtml(p.displayName)}</div>`)
-      .join('')
+    syncLobbyControls(state)
   })
+
+  syncLobbyControls(store.getState())
 }
