@@ -1,0 +1,184 @@
+[
+  {
+    "id": "scenario_1",
+    "name": "Raxxon",
+    "description": "Destroy the Raxxon facility before it releases a mutant strain. Time is running out.",
+    "rounds": 10,
+    "startingMorale": 5,
+    "playerCount": [2, 3, 4, 5],
+    "winCondition": {
+      "type": "objective",
+      "description": "Destroy all Raxxon containers before the final round ends.",
+      "objectiveId": "destroy_raxxon"
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." },
+      { "type": "rounds_exceeded", "description": "Raxxon releases the mutant strain." }
+    ],
+    "specialRules": [
+      {
+        "id": "raxxon_spread",
+        "description": "At the start of each round, add 1 zombie to a random location."
+      }
+    ]
+  },
+  {
+    "id": "scenario_2",
+    "name": "Kodiak Jack",
+    "description": "Survive while a mysterious figure steals your supplies.",
+    "rounds": 8,
+    "startingMorale": 5,
+    "playerCount": [2, 3, 4, 5],
+    "winCondition": {
+      "type": "survive",
+      "description": "Survive all rounds with morale above 0."
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." }
+    ],
+    "specialRules": [
+      {
+        "id": "kodiak_theft",
+        "description": "At the end of each round, Kodiak Jack steals 1 food from the colony."
+      }
+    ]
+  },
+  {
+    "id": "scenario_3",
+    "name": "The Griswolds",
+    "description": "A family of survivors must be escorted to safety without drawing zombies.",
+    "rounds": 9,
+    "startingMorale": 6,
+    "playerCount": [2, 3, 4, 5],
+    "winCondition": {
+      "type": "escort",
+      "description": "Escort all Griswold family members to the colony."
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." },
+      { "type": "griswold_death", "description": "A Griswold family member is killed." }
+    ],
+    "specialRules": [
+      {
+        "id": "griswold_noise",
+        "description": "Griswolds add +1 zombie spawn per round while not at colony."
+      }
+    ]
+  },
+  {
+    "id": "scenario_4",
+    "name": "Don't Open the Door",
+    "description": "Survive the night while something pounds on the colony doors.",
+    "rounds": 7,
+    "startingMorale": 4,
+    "playerCount": [2, 3, 4, 5],
+    "winCondition": {
+      "type": "survive",
+      "description": "Survive until dawn (7 rounds) without opening the colony doors."
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." },
+      { "type": "door_opened", "description": "The colony doors are opened." }
+    ],
+    "specialRules": [
+      {
+        "id": "door_pressure",
+        "description": "Each round, roll a die. On 1-2, add 2 zombies to colony."
+      }
+    ]
+  },
+  {
+    "id": "scenario_5",
+    "name": "Fuel for a Fire",
+    "description": "Gather enough fuel to burn the zombie horde before they overwhelm the colony.",
+    "rounds": 11,
+    "startingMorale": 5,
+    "playerCount": [2, 3, 4, 5],
+    "winCondition": {
+      "type": "collect",
+      "description": "Collect 8 fuel cards and play them at the colony to burn the horde.",
+      "required": { "type": "fuel", "count": 8 }
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." },
+      { "type": "horde_arrival", "description": "The horde reaches the colony (round 11)." }
+    ],
+    "specialRules": [
+      {
+        "id": "horde_march",
+        "description": "Each round, zombies move 1 step closer. Colony gets +2 zombies at round 11."
+      }
+    ]
+  },
+  {
+    "id": "scenario_6",
+    "name": "A Nightmare to Remember",
+    "description": "Recover lost memories of a survivor to reveal the colony's traitor.",
+    "rounds": 10,
+    "startingMorale": 5,
+    "playerCount": [3, 4, 5],
+    "winCondition": {
+      "type": "investigate",
+      "description": "Recover all 5 memory fragments before the final round.",
+      "required": { "type": "memory_fragment", "count": 5 }
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." }
+    ],
+    "specialRules": [
+      {
+        "id": "betrayer_hidden",
+        "description": "Betrayer secretly destroys memory fragments each round."
+      }
+    ]
+  },
+  {
+    "id": "scenario_7",
+    "name": "Bandits",
+    "description": "Fend off a bandit gang who raids the colony every other round.",
+    "rounds": 9,
+    "startingMorale": 5,
+    "playerCount": [2, 3, 4, 5],
+    "winCondition": {
+      "type": "survive",
+      "description": "Survive all rounds while protecting the colony's supplies."
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." },
+      { "type": "supply_empty", "description": "Colony has no food at the start of a round." }
+    ],
+    "specialRules": [
+      {
+        "id": "bandit_raid",
+        "description": "Odd rounds: bandits steal 1 food and 1 random item from the colony."
+      }
+    ]
+  },
+  {
+    "id": "scenario_8",
+    "name": "The Long Road Ahead",
+    "description": "Gather enough supplies to mount a full evacuation before the colony falls.",
+    "rounds": 12,
+    "startingMorale": 6,
+    "playerCount": [2, 3, 4, 5],
+    "winCondition": {
+      "type": "collect_and_survive",
+      "description": "Collect 3 food, 2 fuel, and 2 medicine by round 12.",
+      "required": [
+        { "type": "food", "count": 3 },
+        { "type": "fuel", "count": 2 },
+        { "type": "medicine", "count": 2 }
+      ]
+    },
+    "lossConditions": [
+      { "type": "morale_zero", "description": "Morale reaches 0." },
+      { "type": "rounds_exceeded", "description": "The colony falls before evacuation is complete." }
+    ],
+    "specialRules": [
+      {
+        "id": "mounting_pressure",
+        "description": "Every 3 rounds, add 1 extra zombie to every location."
+      }
+    ]
+  }
+]
