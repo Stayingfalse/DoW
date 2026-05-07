@@ -140,7 +140,7 @@ export function initLobby (store, ws) {
           <div class="lobby-field">
             <label>Join Existing Game</label>
             <div class="lobby-game-id">
-              <input id="lobby-gameid" type="text" placeholder="Game ID" autocomplete="off" />
+              <input id="lobby-gameid" type="text" placeholder="ABC123" autocomplete="off" maxlength="6" />
               <button class="btn btn-secondary" id="lobby-joingame-btn" style="flex:0;padding:11px 18px">Join</button>
             </div>
           </div>
@@ -259,7 +259,7 @@ export function initLobby (store, ws) {
 
   joinGameBtn.addEventListener('click', () => {
     if (!requireConnection()) return
-    const gameId = gameIdInput.value.trim()
+    const gameId = gameIdInput.value.trim().toUpperCase()
     if (!gameId) return
     ws.send('JOIN_GAME', { gameId })
   })

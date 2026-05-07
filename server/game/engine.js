@@ -22,6 +22,20 @@ const WS_OPEN = 1 // WebSocket.OPEN
 // In-memory game state cache: gameId -> state
 const games = new Map()
 
+// ─── Game code generator ──────────────────────────────────────────────────────
+
+const GAME_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+function generateGameCode () {
+  let code
+  do {
+    code = Array.from({ length: 6 }, () =>
+      GAME_CODE_CHARS[Math.floor(Math.random() * GAME_CODE_CHARS.length)]
+    ).join('')
+  } while (db.getGame(code))
+  return code
+}
+
 // ─── Difficulty config ────────────────────────────────────────────────────────
 
 const DIFFICULTY_CONFIG = {
@@ -172,7 +186,7 @@ function spawnRoundZombies (state) {
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
 function createGame (scenarioId, difficulty) {
-  const id = uuidv4()
+  const id = generateGameCode()
   const validDifficulty = ['easy', 'normal', 'hard'].includes(difficulty) ? difficulty : 'normal'
   const state = {
     id,
@@ -349,9 +363,12 @@ function handleCreateGame (socket, request, payload, presence) {
 
 function handleJoinGame (socket, request, payload, presence) {
   const { gameId } = payload || {}
-  const v = validate.requireString(gameId, 'gameId', 36)
+  const v = validate.requireString(gameId, 'gameId', 6)
   if (!v.ok) {
     return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: v.error } }))
+  }
+  if (!/^[A-Z0-9]{6}$/.test(gameId)) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'gameId must be a 6-character alphanumeric code' } }))
   }
   const state = getGame(gameId)
   if (!state) {
