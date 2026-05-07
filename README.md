@@ -15,7 +15,6 @@ A browser-first, multiplayer Dead of Winter–inspired experience: Fastify + SQL
 1. Install deps: `npm install` (runs `postinstall` to copy vendor assets into `client/vendor/`)
 2. Create `.env`:
    - `SESSION_SECRET` (required in production; use 32+ chars)
-   - `LOBBY_PASSWORD` (required to join)
    - `DB_PATH` (optional; defaults to `data/dow.db`)
 3. Run server: `npm run dev` (or `npm start`)
 4. Open: `http://localhost:3000`
@@ -27,7 +26,7 @@ This project is built in phases. Earlier phases focus on shipping a playable sli
 ### Phase 1 — Foundation (PWA + server)
 - Fastify server with sessions/cookies, static client hosting, and WebSocket endpoint
 - SQLite schema + persistence layer for games/players/locations/events
-- Auth flow: join/leave, lobby password gate via env var
+- Auth flow: join/leave, open lobby (no password required)
 - PWA: `manifest.json`, service worker caching, offline-friendly asset strategy
 - Vendor workflow: copy Three.js/Tone.js assets to `client/vendor/` on install (no CDN / no bundler)
 

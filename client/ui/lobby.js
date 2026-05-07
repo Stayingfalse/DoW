@@ -1,6 +1,6 @@
 /**
  * Dead of Winter — Lobby UI
- * Password entry, display name, create/join game, presence list.
+ * Display name, create/join game, presence list.
  */
 import { escHtml } from '../utils/escape-html.js'
 
@@ -112,10 +112,6 @@ export function initLobby (store, ws) {
           <label>Display Name</label>
           <input id="lobby-name" type="text" placeholder="Your name" maxlength="32" autocomplete="off" />
         </div>
-        <div class="lobby-field">
-          <label>Lobby Password</label>
-          <input id="lobby-password" type="password" placeholder="Password" />
-        </div>
         <div class="lobby-actions">
           <button class="btn btn-primary" id="lobby-join-btn">Enter Lobby</button>
         </div>
@@ -165,7 +161,6 @@ export function initLobby (store, ws) {
   `
 
   const nameInput = el.querySelector('#lobby-name')
-  const passwordInput = el.querySelector('#lobby-password')
   const joinBtn = el.querySelector('#lobby-join-btn')
   const errorEl = el.querySelector('#lobby-error')
   const gameSection = el.querySelector('#lobby-game-section')
@@ -234,16 +229,14 @@ export function initLobby (store, ws) {
   joinBtn.addEventListener('click', async () => {
     errorEl.textContent = ''
     const displayName = nameInput.value.trim()
-    const password = passwordInput.value
 
     if (!displayName) { errorEl.textContent = 'Name is required.'; return }
-    if (!password) { errorEl.textContent = 'Password is required.'; return }
 
     try {
       const res = await fetch('/auth/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName, password })
+        body: JSON.stringify({ displayName })
       })
       const data = await res.json()
       if (!res.ok) { errorEl.textContent = data.error || 'Login failed.'; return }
@@ -253,7 +246,6 @@ export function initLobby (store, ws) {
       joinBtn.textContent = 'Joined!'
       joinBtn.disabled = true
       nameInput.disabled = true
-      passwordInput.disabled = true
       ws.connect()
     } catch (err) {
       errorEl.textContent = 'Network error. Try again.'
