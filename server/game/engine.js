@@ -27,13 +27,14 @@ const games = new Map()
 const GAME_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 function generateGameCode () {
-  let code
-  do {
-    code = Array.from({ length: 6 }, () =>
+  const MAX_ATTEMPTS = 10
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    const code = Array.from({ length: 6 }, () =>
       GAME_CODE_CHARS[Math.floor(Math.random() * GAME_CODE_CHARS.length)]
     ).join('')
-  } while (db.getGame(code))
-  return code
+    if (!db.getGame(code)) return code
+  }
+  throw new Error('Failed to generate a unique game code after maximum attempts')
 }
 
 // ─── Difficulty config ────────────────────────────────────────────────────────
