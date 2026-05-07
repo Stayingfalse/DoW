@@ -601,8 +601,18 @@ function handleCrisisContrib (socket, request, payload, presence) {
       }
     }
 
+    // Auto-advance: crisis → colony after reveal so players don't need to End Turn
+    if (state.phase === 'crisis') {
+      statemachine.advanceTurn(state) // END_CRISIS → colony
+      if (state.phase === 'colony') {
+        statemachine.runColonyPhase(state)
+      }
+    }
+
     saveGame(gameId)
     broadcastState(gameId, presence)
+    broadcastPhaseChange(gameId, state, presence)
+    broadcastPrivateState(gameId, presence)
 
     const outcome = statemachine.checkOutcome(state)
     if (outcome) {

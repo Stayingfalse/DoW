@@ -6,6 +6,7 @@
 import { initScene } from './render/scene.js'
 import { initStore } from './state/store.js'
 import { WsClient } from './ws-client.js'
+import { initZoomControls } from './ui/zoom-controls.js'
 import { initLobby } from './ui/lobby.js'
 import { initHud } from './ui/hud.js'
 import { initCards } from './ui/cards.js'
@@ -59,6 +60,7 @@ async function main () {
     initModals(store, ws)
     initLog(store)
     initAudioControls()
+    initZoomControls(scene)
 
     // ─── Audio: WS event hooks ──────────────────────────────────────────────
     // Delay between crisis reveal sting and pass/fail resolution cue (ms)
