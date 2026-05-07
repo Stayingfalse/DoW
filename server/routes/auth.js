@@ -1,7 +1,6 @@
 'use strict'
 
 const { v4: uuidv4 } = require('uuid')
-const crypto = require('crypto')
 const db = require('../db/queries')
 
 module.exports = async function (fastify) {
@@ -10,28 +9,14 @@ module.exports = async function (fastify) {
     schema: {
       body: {
         type: 'object',
-        required: ['displayName', 'password'],
+        required: ['displayName'],
         properties: {
-          displayName: { type: 'string', minLength: 1, maxLength: 32 },
-          password: { type: 'string' }
+          displayName: { type: 'string', minLength: 1, maxLength: 32 }
         }
       }
     }
   }, async (request, reply) => {
-    const { displayName, password } = request.body
-
-    // Constant-time comparison to prevent timing attacks.
-    // Reject immediately if LOBBY_PASSWORD is not configured.
-    const expected = process.env.LOBBY_PASSWORD
-    if (!expected) {
-      return reply.code(503).send({ error: 'Server not configured — LOBBY_PASSWORD not set' })
-    }
-    const match = password.length === expected.length &&
-      crypto.timingSafeEqual(Buffer.from(password), Buffer.from(expected))
-
-    if (!match) {
-      return reply.code(401).send({ error: 'Invalid password' })
-    }
+    const { displayName } = request.body
 
     const playerId = uuidv4()
     db.insertPlayer({

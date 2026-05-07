@@ -1,6 +1,6 @@
 /**
  * Dead of Winter — Lobby UI
- * Password entry, display name, create/join game, presence list.
+ * Display name, create/join game, presence list.
  */
 import { escHtml } from '../utils/escape-html.js'
 
@@ -112,10 +112,6 @@ export function initLobby (store, ws) {
           <label>Display Name</label>
           <input id="lobby-name" type="text" placeholder="Your name" maxlength="32" autocomplete="off" />
         </div>
-        <div class="lobby-field">
-          <label>Lobby Password</label>
-          <input id="lobby-password" type="password" placeholder="Password" />
-        </div>
         <div class="lobby-actions">
           <button class="btn btn-primary" id="lobby-join-btn">Enter Lobby</button>
         </div>
@@ -165,7 +161,6 @@ export function initLobby (store, ws) {
   `
 
   const nameInput = el.querySelector('#lobby-name')
-  const passwordInput = el.querySelector('#lobby-password')
   const joinBtn = el.querySelector('#lobby-join-btn')
   const errorEl = el.querySelector('#lobby-error')
   const gameSection = el.querySelector('#lobby-game-section')
@@ -176,19 +171,72 @@ export function initLobby (store, ws) {
   const presenceList = el.querySelector('#presence-list')
   const startGameBtn = el.querySelector('#lobby-start-btn')
 
+  function requireConnection () {
+    const state = store.getState()
+    if (state.ws && state.ws.connected) return true
+    errorEl.textContent = 'Connecting to game server…'
+    return false
+  }
+
+  function syncLobbyControls (state) {
+    const connected = state.ws && state.ws.connected
+    const inSetupGame = state.game && state.game.phase === 'setup'
+
+    createBtn.disabled = !connected
+    joinGameBtn.disabled = !connected
+    startGameBtn.disabled = !(connected && inSetupGame)
+
+    if (state.auth && state.auth.isAuthenticated && !connected) {
+      errorEl.textContent = 'Connecting to game server…'
+    } else if (connected && errorEl.textContent === 'Connecting to game server…') {
+      errorEl.textContent = ''
+    }
+
+    if (state.game && state.game.id) {
+      gameIdInput.value = state.game.id
+    }
+
+    const setupPlayers = inSetupGame
+      ? (state.game.players || []).map(player => ({
+          id: player.id,
+          displayName: player.displayName
+        }))
+      : []
+
+    const visiblePlayers = setupPlayers.length > 0
+      ? setupPlayers
+      : (state.lobby.players || []).map(player => ({
+          id: player.playerId,
+          displayName: player.displayName
+        }))
+
+    if (state.auth && state.auth.isAuthenticated) {
+      const selfId = state.auth.playerId
+      const alreadyListed = visiblePlayers.some(player => player.id === selfId)
+      if (!alreadyListed) {
+        visiblePlayers.unshift({
+          id: selfId,
+          displayName: state.auth.displayName
+        })
+      }
+    }
+
+    presenceList.innerHTML = visiblePlayers
+      .map(player => `<div class="presence-item">${escHtml(player.displayName)}</div>`)
+      .join('')
+  }
+
   joinBtn.addEventListener('click', async () => {
     errorEl.textContent = ''
     const displayName = nameInput.value.trim()
-    const password = passwordInput.value
 
     if (!displayName) { errorEl.textContent = 'Name is required.'; return }
-    if (!password) { errorEl.textContent = 'Password is required.'; return }
 
     try {
       const res = await fetch('/auth/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName, password })
+        body: JSON.stringify({ displayName })
       })
       const data = await res.json()
       if (!res.ok) { errorEl.textContent = data.error || 'Login failed.'; return }
@@ -198,7 +246,6 @@ export function initLobby (store, ws) {
       joinBtn.textContent = 'Joined!'
       joinBtn.disabled = true
       nameInput.disabled = true
-      passwordInput.disabled = true
       ws.connect()
     } catch (err) {
       errorEl.textContent = 'Network error. Try again.'
@@ -206,17 +253,28 @@ export function initLobby (store, ws) {
   })
 
   createBtn.addEventListener('click', () => {
+    if (!requireConnection()) return
     ws.send('CREATE_GAME', { scenario: scenarioSelect.value })
   })
 
   joinGameBtn.addEventListener('click', () => {
+    if (!requireConnection()) return
     const gameId = gameIdInput.value.trim()
     if (!gameId) return
     ws.send('JOIN_GAME', { gameId })
   })
 
   startGameBtn.addEventListener('click', () => {
+    if (!requireConnection()) return
     ws.send('START_GAME', {})
+  })
+
+  ws.on('ERROR', (payload) => {
+    errorEl.textContent = (payload && payload.message) || 'An error occurred. Please try again.'
+  })
+
+  ws.on('GAME_STATE', () => {
+    errorEl.textContent = ''
   })
 
   // Hide lobby when game starts
@@ -224,13 +282,8 @@ export function initLobby (store, ws) {
     if (state.game && state.game.phase !== 'setup') {
       document.getElementById('lobby').classList.add('hidden')
     }
-    // Enable Start Game button once player is in a game (setup phase)
-    if (state.game && state.game.phase === 'setup') {
-      startGameBtn.disabled = false
-    }
-    // Update presence list
-    presenceList.innerHTML = (state.lobby.players || [])
-      .map(p => `<div class="presence-item">${escHtml(p.displayName)}</div>`)
-      .join('')
+    syncLobbyControls(state)
   })
+
+  syncLobbyControls(store.getState())
 }
