@@ -156,6 +156,9 @@ function handleMessage (fastify, socket, request, msg) {
     case 'CROSSROADS_CHOICE':
       engine.handleCrossroadsChoice(socket, request, payload, presence)
       break
+    case 'ADD_BOT':
+      engine.handleAddBot(socket, request, payload, presence)
+      break
     default:
       fastify.log.warn({ type }, 'Unknown WS message type')
       socket.send(JSON.stringify({ type: 'ERROR', payload: { message: `Unknown type: ${type}`, code: 'UNKNOWN_TYPE' } }))

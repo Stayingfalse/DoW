@@ -47,5 +47,40 @@
     "name": "Hoarder",
     "description": "Have at least 4 item cards in your hand when the scenario ends.",
     "winCondition": { "type": "hand_size", "count": 4 }
+  },
+  {
+    "id": "obj_medic",
+    "type": "survivor",
+    "name": "Field Medic",
+    "description": "Heal at least 4 wounds from survivors over the course of the game.",
+    "winCondition": { "type": "wounds_healed", "count": 4 }
+  },
+  {
+    "id": "obj_crisis_hero",
+    "type": "survivor",
+    "name": "Crisis Hero",
+    "description": "Successfully contribute to at least 3 crises during the game.",
+    "winCondition": { "type": "crises_contributed", "count": 3 }
+  },
+  {
+    "id": "obj_survivor_last",
+    "type": "survivor",
+    "name": "Last One Standing",
+    "description": "Be the last player with surviving (non-wounded) survivors when the scenario ends.",
+    "winCondition": { "type": "last_unwounded" }
+  },
+  {
+    "id": "obj_generous",
+    "type": "survivor",
+    "name": "Generous Spirit",
+    "description": "Give at least 3 item cards to other players during the game.",
+    "winCondition": { "type": "items_given", "count": 3 }
+  },
+  {
+    "id": "obj_explorer",
+    "type": "survivor",
+    "name": "Explorer",
+    "description": "Have your survivors visit every non-colony location at least once.",
+    "winCondition": { "type": "locations_visited", "count": 6 }
   }
 ]

@@ -7,6 +7,7 @@ const actions = require('./actions')
 const crisis = require('./crisis')
 const crossroads = require('./crossroads')
 const validate = require('./validate')
+const botHooks = require('./bot-hooks')
 
 const locationsData = require('../data/locations.json')
 const itemsData = require('../data/items.json')
@@ -20,6 +21,18 @@ const WS_OPEN = 1 // WebSocket.OPEN
 
 // In-memory game state cache: gameId -> state
 const games = new Map()
+
+// ─── Difficulty config ────────────────────────────────────────────────────────
+
+const DIFFICULTY_CONFIG = {
+  easy:   { actionDice: 5, spawnCount: 1, moraleBonus:  1, betrayerBonusDice: 0 },
+  normal: { actionDice: 4, spawnCount: 2, moraleBonus:  0, betrayerBonusDice: 0 },
+  hard:   { actionDice: 3, spawnCount: 3, moraleBonus: -1, betrayerBonusDice: 1 }
+}
+
+function getDifficultyConfig (state) {
+  return DIFFICULTY_CONFIG[state.difficulty] || DIFFICULTY_CONFIG.normal
+}
 
 // ─── Game Initialization ──────────────────────────────────────────────────────
 
@@ -49,6 +62,7 @@ function rollActionDice (count) {
  */
 function initGameState (state) {
   const scenario = scenariosData.find(s => s.id === state.scenarioId) || scenariosData[0]
+  const diff = getDifficultyConfig(state)
 
   // ── Locations ────────────────────────────────────────────────────────────────
   state.locations = {}
@@ -64,33 +78,48 @@ function initGameState (state) {
   // ── Colony food supply ───────────────────────────────────────────────────────
   state.food = (state.players.length || 1) + 1
 
+  // Build a character lookup for fast access to starting kits
+  const charMap = new Map(charactersData.map(c => [c.id, c]))
+
   // ── Character assignment (2 per player) ──────────────────────────────────────
   const charPool = shuffle([...charactersData])
   for (const player of state.players) {
+    if (player.isBot) {
+      // Bots get the next 2 characters from the pool just like humans
+    }
     const chars = charPool.splice(0, 2)
     player.survivorIds = chars.map(c => c.id)
     player.characters = chars.map(c => c.id)
     player.zombiesKilled = 0
+    if (!player.hand) player.hand = []
     // Place each survivor at their designated start location
     for (const char of chars) {
       if (char.startLocation && state.locations[char.startLocation]) {
         state.locations[char.startLocation].survivor_ids.push(char.id)
       }
+      // Deal starting kit items directly into player's hand
+      if (char.startingItems && char.startingItems.length) {
+        player.hand.push(...char.startingItems)
+      }
     }
   }
 
   // ── Secret objectives ────────────────────────────────────────────────────────
-  const betrayerIdx = Math.floor(Math.random() * state.players.length)
+  // Bots are never assigned the betrayer role
+  const eligibleBetrayer = state.players.filter(p => !p.isBot)
+  const betrayerIdx = eligibleBetrayer.length > 0
+    ? Math.floor(Math.random() * eligibleBetrayer.length)
+    : -1
   const betrayerObj = objectivesData.find(o => o.type === 'betrayer')
   const survivorObjs = shuffle(objectivesData.filter(o => o.type === 'survivor'))
 
-  for (let i = 0; i < state.players.length; i++) {
-    if (i === betrayerIdx) {
-      state.players[i].secretObjective = betrayerObj
-      state.players[i].isBetrayer = true
+  for (const player of state.players) {
+    if (!player.isBot && eligibleBetrayer[betrayerIdx] === player) {
+      player.secretObjective = betrayerObj
+      player.isBetrayer = true
     } else {
-      state.players[i].secretObjective = survivorObjs.shift() || null
-      state.players[i].isBetrayer = false
+      player.secretObjective = survivorObjs.shift() || null
+      player.isBetrayer = false
     }
   }
 
@@ -105,11 +134,11 @@ function initGameState (state) {
   state.crisisDeck = shuffle([...crisisDataAll])
   state.currentCrisis = state.crisisDeck.shift() || null
 
-  // ── Action dice for first player ─────────────────────────────────────────────
-  state.actionDice = rollActionDice(4)
+  // ── Action dice for first player (difficulty-adjusted) ───────────────────────
+  state.actionDice = rollActionDice(diff.actionDice)
   state.usedDice = []
   state.scenarioRounds = scenario.rounds || 10
-  state.morale = scenario.startingMorale || 5
+  state.morale = Math.max(1, Math.min(10, (scenario.startingMorale || 5) + diff.moraleBonus))
 
   return state
 }
@@ -127,24 +156,28 @@ function drawNextCrisis (state) {
 
 /**
  * Spawn zombies at the end of a cleanup phase.
- * Default: 1 zombie added to 2 random non-colony locations.
+ * Spawn count scales with difficulty setting.
  */
 function spawnRoundZombies (state) {
   const locIds = Object.keys(state.locations).filter(id => id !== 'colony')
   if (!locIds.length) return
-  for (let i = 0; i < 2; i++) {
+  const diff = getDifficultyConfig(state)
+  for (let i = 0; i < diff.spawnCount; i++) {
     const locId = locIds[Math.floor(Math.random() * locIds.length)]
     state.locations[locId].zombie_count = (state.locations[locId].zombie_count || 0) + 1
   }
 }
 
+
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
-function createGame (scenarioId) {
+function createGame (scenarioId, difficulty) {
   const id = uuidv4()
+  const validDifficulty = ['easy', 'normal', 'hard'].includes(difficulty) ? difficulty : 'normal'
   const state = {
     id,
     scenarioId,
+    difficulty: validDifficulty,
     phase: 'setup',
     round: 1,
     morale: 5,
@@ -255,6 +288,7 @@ function publicState (state) {
   return {
     id: state.id,
     scenarioId: state.scenarioId,
+    difficulty: state.difficulty || 'normal',
     phase: state.phase,
     round: state.round,
     morale: state.morale,
@@ -276,6 +310,7 @@ function publicState (state) {
       survivorIds: p.survivorIds,
       handSize: (p.hand || []).length,
       isExiled: p.isExiled,
+      isBot: p.isBot || false,
       zombiesKilled: p.zombiesKilled || 0
     })),
     locations: state.locations,
@@ -288,11 +323,11 @@ function publicState (state) {
 // ─── WS Message Handlers ──────────────────────────────────────────────────────
 
 function handleCreateGame (socket, request, payload, presence) {
-  const { scenario } = payload || {}
+  const { scenario, difficulty } = payload || {}
   if (!scenario) {
     return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'scenario required' } }))
   }
-  const state = createGame(scenario)
+  const state = createGame(scenario, difficulty)
   const playerId = request.session.playerId
   db.assignPlayerToGame(playerId, state.id, 0)
   request.session.gameId = state.id
@@ -305,6 +340,7 @@ function handleCreateGame (socket, request, payload, presence) {
     secretObjective: null,
     isBetrayer: false,
     isExiled: false,
+    isBot: false,
     zombiesKilled: 0
   }]
   saveGame(state.id)
@@ -353,6 +389,44 @@ function handleJoinGame (socket, request, payload, presence) {
     secretObjective: null,
     isBetrayer: false,
     isExiled: false,
+    isBot: false,
+    zombiesKilled: 0
+  })
+  saveGame(gameId)
+  broadcastState(gameId, presence)
+}
+
+/**
+ * ADD_BOT — add a CPU-controlled player to the game (setup phase only, max 1 bot).
+ * The bot is given a generated player ID and joins the turn order like a human.
+ */
+function handleAddBot (socket, request, payload, presence) {
+  const gameId = request.session.gameId
+  const state = getGame(gameId)
+  if (!state) return
+
+  if (state.phase !== 'setup') {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Cannot add bot after game starts' } }))
+  }
+  if (state.players.filter(p => p.isBot).length >= 1) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Only one bot allowed per game' } }))
+  }
+  if (state.players.length >= 6) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Game is full' } }))
+  }
+
+  const botId = `bot_${uuidv4()}`
+  const turnOrder = state.players.length
+  state.players.push({
+    id: botId,
+    displayName: 'CPU',
+    turnOrder,
+    survivorIds: [],
+    hand: [],
+    secretObjective: null,
+    isBetrayer: false,
+    isExiled: false,
+    isBot: true,
     zombiesKilled: 0
   })
   saveGame(gameId)
@@ -528,9 +602,15 @@ function handleEndTurn (socket, request, payload, presence) {
   statemachine.advanceTurn(state)
   const newPhase = state.phase
 
+  const diff = getDifficultyConfig(state)
+
   if (prevPhase === 'action' && newPhase === 'action') {
     // Next player within action phase — roll fresh dice
-    state.actionDice = rollActionDice(4)
+    const activePlayer = state.players.find(p => p.id === state.activePlayerId)
+    const diceCount = (activePlayer && activePlayer.isBot && state.difficulty === 'hard')
+      ? diff.actionDice + diff.betrayerBonusDice
+      : diff.actionDice
+    state.actionDice = rollActionDice(diceCount)
     state.usedDice = []
   } else if (prevPhase === 'crisis' && newPhase === 'colony') {
     // Colony phase: food consumption + zombie movement
@@ -539,7 +619,7 @@ function handleEndTurn (socket, request, payload, presence) {
     // New round — spawn zombies, draw next crisis, fresh dice
     spawnRoundZombies(state)
     drawNextCrisis(state)
-    state.actionDice = rollActionDice(4)
+    state.actionDice = rollActionDice(diff.actionDice)
     state.usedDice = []
   } else if (prevPhase === 'colony' && newPhase === 'cleanup') {
     // Nothing extra — cleanup phase logic runs when leaving cleanup
@@ -553,6 +633,15 @@ function handleEndTurn (socket, request, payload, presence) {
   const outcome = statemachine.checkOutcome(state)
   if (outcome) {
     broadcastToAll(gameId, presence, { type: 'GAME_OVER', payload: outcome })
+    return
+  }
+
+  // If the next active player is a bot, schedule their turn
+  const nextPlayer = state.players.find(p => p.id === state.activePlayerId)
+  if (nextPlayer && nextPlayer.isBot && state.phase === 'action') {
+    botHooks.scheduleBotTurn(gameId, nextPlayer.id, (actions) => {
+      _applyBotTurn(gameId, nextPlayer.id, actions, presence)
+    })
   }
 }
 
@@ -600,6 +689,73 @@ function handleCrossroadsChoice (socket, request, payload, presence) {
   }
 }
 
+// ─── Bot Turn Execution ───────────────────────────────────────────────────────
+
+/**
+ * Apply a sequence of bot-decided actions, then end the bot's turn.
+ * Actions is an array of { type, payload } objects from decideBotAction.
+ */
+function _applyBotTurn (gameId, botPlayerId, botActions, presence) {
+  const state = getGame(gameId)
+  if (!state || state.activePlayerId !== botPlayerId || state.phase !== 'action') return
+
+  for (const act of botActions) {
+    if (!state.actionDice || state.actionDice.length === 0) break
+    const result = actions.applyAction(state, botPlayerId, act.type, act.payload)
+    if (!result.success) continue
+    Object.assign(state, result.newState)
+    const usedDie = state.actionDice.shift()
+    state.usedDice = [...(state.usedDice || []), usedDie]
+    if (act.type === 'ACTION_ATTACK') {
+      const killEffect = (result.effects || []).find(e => e.type === 'KILL_ZOMBIE')
+      if (killEffect && killEffect.count > 0) {
+        const bot = state.players.find(p => p.id === botPlayerId)
+        if (bot) bot.zombiesKilled = (bot.zombiesKilled || 0) + killEffect.count
+      }
+    }
+    db.insertEvent({ gameId, round: state.round, playerId: botPlayerId, type: act.type, payload: act.payload })
+    broadcastToAll(gameId, presence, {
+      type: 'ACTION_RESULT',
+      payload: { success: true, effects: result.effects, narration: result.narration }
+    })
+  }
+
+  // Bot ends its own turn
+  const prevPhase = state.phase
+  statemachine.advanceTurn(state)
+  const newPhase = state.phase
+  const diff = getDifficultyConfig(state)
+
+  if (prevPhase === 'action' && newPhase === 'action') {
+    state.actionDice = rollActionDice(diff.actionDice)
+    state.usedDice = []
+  } else if (prevPhase === 'cleanup' && newPhase === 'action') {
+    spawnRoundZombies(state)
+    drawNextCrisis(state)
+    state.actionDice = rollActionDice(diff.actionDice)
+    state.usedDice = []
+  }
+
+  saveGame(gameId)
+  broadcastState(gameId, presence)
+  broadcastPhaseChange(gameId, state, presence)
+  broadcastPrivateState(gameId, presence)
+
+  const outcome = statemachine.checkOutcome(state)
+  if (outcome) {
+    broadcastToAll(gameId, presence, { type: 'GAME_OVER', payload: outcome })
+    return
+  }
+
+  // If the next player is also a bot, chain their turn
+  const nextPlayer = state.players.find(p => p.id === state.activePlayerId)
+  if (nextPlayer && nextPlayer.isBot && state.phase === 'action') {
+    botHooks.scheduleBotTurn(gameId, nextPlayer.id, (acts) => {
+      _applyBotTurn(gameId, nextPlayer.id, acts, presence)
+    })
+  }
+}
+
 // ─── Broadcast Helpers ────────────────────────────────────────────────────────
 
 function broadcastToAll (gameId, presence, msg) {
@@ -641,5 +797,6 @@ module.exports = {
   handleCrisisContrib,
   handleEndTurn,
   handleExileVote,
-  handleCrossroadsChoice
+  handleCrossroadsChoice,
+  handleAddBot
 }

@@ -8,7 +8,8 @@
     "woundThreshold": 4,
     "startLocation": "police_station",
     "ability": "intimidate",
-    "abilityDescription": "Once per round, may spend 1 influence to cancel an exile vote targeting any survivor."
+    "abilityDescription": "Once per round, may spend 1 influence to cancel an exile vote targeting any survivor.",
+    "startingItems": ["weapon_pistol"]
   },
   {
     "id": "sophia_mcallister",
@@ -19,7 +20,8 @@
     "woundThreshold": 3,
     "startLocation": "hospital",
     "ability": "field_medic",
-    "abilityDescription": "May clean two wounds per action instead of one."
+    "abilityDescription": "May clean two wounds per action instead of one.",
+    "startingItems": ["medicine_bandage", "medicine_antibiotics"]
   },
   {
     "id": "dr_alan_hart",
@@ -30,7 +32,8 @@
     "woundThreshold": 2,
     "startLocation": "hospital",
     "ability": "surgery",
-    "abilityDescription": "When using a medicine card, may also clear one wound from any survivor at the same location."
+    "abilityDescription": "When using a medicine card, may also clear one wound from any survivor at the same location.",
+    "startingItems": ["medicine_first_aid"]
   },
   {
     "id": "jake_washington",
@@ -41,7 +44,8 @@
     "woundThreshold": 4,
     "startLocation": "police_station",
     "ability": "tactical_training",
-    "abilityDescription": "May spend a blue die result as an attack action."
+    "abilityDescription": "May spend a blue die result as an attack action.",
+    "startingItems": ["weapon_rifle"]
   },
   {
     "id": "lena_price",
@@ -52,7 +56,8 @@
     "woundThreshold": 3,
     "startLocation": "grocery_store",
     "ability": "forager",
-    "abilityDescription": "Finds one extra item card when searching the Grocery Store."
+    "abilityDescription": "Finds one extra item card when searching the Grocery Store.",
+    "startingItems": ["food_canned", "food_dried"]
   },
   {
     "id": "nathan_burns",
@@ -85,7 +90,8 @@
     "woundThreshold": 4,
     "startLocation": "gas_station",
     "ability": "mechanic",
-    "abilityDescription": "Fuel items may be played for double their normal value when used at the Gas Station."
+    "abilityDescription": "Fuel items may be played for double their normal value when used at the Gas Station.",
+    "startingItems": ["fuel_gas_can"]
   },
   {
     "id": "rosie_okafor",
@@ -107,7 +113,8 @@
     "woundThreshold": 3,
     "startLocation": "police_station",
     "ability": "sniper",
-    "abilityDescription": "Attack actions may target a zombie in any location, not just the current one."
+    "abilityDescription": "Attack actions may target a zombie in any location, not just the current one.",
+    "startingItems": ["weapon_rifle"]
   },
   {
     "id": "amber_hayes",
@@ -129,7 +136,8 @@
     "woundThreshold": 4,
     "startLocation": "gas_station",
     "ability": "smuggler",
-    "abilityDescription": "May carry one extra item card beyond normal hand limit."
+    "abilityDescription": "May carry one extra item card beyond normal hand limit.",
+    "startingItems": ["junk_scrap"]
   },
   {
     "id": "helen_chu",
@@ -140,7 +148,8 @@
     "woundThreshold": 2,
     "startLocation": "hospital",
     "ability": "nurse",
-    "abilityDescription": "Medicine cards played at the Hospital heal two wounds instead of one."
+    "abilityDescription": "Medicine cards played at the Hospital heal two wounds instead of one.",
+    "startingItems": ["medicine_bandage"]
   },
   {
     "id": "darius_cole",
@@ -151,7 +160,8 @@
     "woundThreshold": 4,
     "startLocation": "colony",
     "ability": "guard",
-    "abilityDescription": "Once per colony phase, may prevent one zombie from moving into the colony."
+    "abilityDescription": "Once per colony phase, may prevent one zombie from moving into the colony.",
+    "startingItems": ["weapon_bat"]
   },
   {
     "id": "penny_shaw",
@@ -206,7 +216,8 @@
     "woundThreshold": 3,
     "startLocation": "grocery_store",
     "ability": "cook",
-    "abilityDescription": "Food items may be played to restore 1 morale in addition to their normal effect."
+    "abilityDescription": "Food items may be played to restore 1 morale in addition to their normal effect.",
+    "startingItems": ["food_canned"]
   },
   {
     "id": "ren_suzuki",
@@ -217,7 +228,8 @@
     "woundThreshold": 3,
     "startLocation": "colony",
     "ability": "engineer",
-    "abilityDescription": "Barricades built by this survivor take two zombie hits to destroy."
+    "abilityDescription": "Barricades built by this survivor take two zombie hits to destroy.",
+    "startingItems": ["tool_hammer"]
   },
   {
     "id": "grace_okonkwo",
@@ -239,7 +251,8 @@
     "woundThreshold": 4,
     "startLocation": "library",
     "ability": "hacker",
-    "abilityDescription": "Once per game, may look at another player's secret objective."
+    "abilityDescription": "Once per game, may look at another player's secret objective.",
+    "startingItems": ["tool_radio"]
   },
   {
     "id": "amara_diallo",
@@ -261,7 +274,8 @@
     "woundThreshold": 4,
     "startLocation": "police_station",
     "ability": "martial_arts",
-    "abilityDescription": "Attack actions do not cost an action die on a roll of 4+."
+    "abilityDescription": "Attack actions do not cost an additional action die on a roll of 4.",
+    "startingItems": ["weapon_knife"]
   },
   {
     "id": "priya_sharma",
@@ -272,7 +286,8 @@
     "woundThreshold": 3,
     "startLocation": "colony",
     "ability": "herbalist",
-    "abilityDescription": "Medicine items found at the Hospital are worth double."
+    "abilityDescription": "Medicine items found at the Hospital are worth double.",
+    "startingItems": ["medicine_painkiller"]
   },
   {
     "id": "tom_nguyen",
@@ -305,7 +320,8 @@
     "woundThreshold": 3,
     "startLocation": "library",
     "ability": "pyrotechnician",
-    "abilityDescription": "Fuel items used as weapons kill two zombies instead of one."
+    "abilityDescription": "Fuel items used as weapons kill two zombies instead of one.",
+    "startingItems": ["fuel_lighter"]
   },
   {
     "id": "cleo_hayes",
@@ -327,6 +343,7 @@
     "woundThreshold": 5,
     "startLocation": "colony",
     "ability": "brawler",
-    "abilityDescription": "May attack two zombies per attack action instead of one."
+    "abilityDescription": "May attack two zombies per attack action instead of one.",
+    "startingItems": ["weapon_shotgun"]
   }
 ]
