@@ -2,6 +2,7 @@ FROM node:20-alpine
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package*.json ./
+COPY scripts ./scripts
 RUN npm install
 COPY . .
 VOLUME ["/app/data"]
