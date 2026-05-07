@@ -94,5 +94,53 @@ function scheduleBotTurn (gameId, botPlayerId, callback) {
   }, BOT_THINK_DELAY_MS)
 }
 
-module.exports = { decideBotActions, scheduleBotTurn }
+/**
+ * Decide bot's crisis contribution.
+ * Strategy: contribute 1-2 matching cards if available, otherwise skip.
+ * Returns array of item IDs to contribute.
+ */
+function decideBotCrisisContribution (gameState, botPlayerId) {
+  const player = (gameState.players || []).find(p => p.id === botPlayerId)
+  if (!player || !player.hand || !player.hand.length) return []
+
+  const crisis = gameState.currentCrisis
+  if (!crisis) return []
+
+  const itemsData = require('../data/items.json')
+  const hand = player.hand || []
+
+  // If crisis accepts 'any' type, contribute 1-2 random cards
+  if (crisis.contributionType === 'any') {
+    const count = Math.min(2, hand.length, crisis.threshold || 1)
+    return hand.slice(0, count)
+  }
+
+  // Find matching cards in hand
+  const matchingCards = hand.filter(cardId => {
+    const item = itemsData.find(i => i.id === cardId)
+    return item && item.type === crisis.contributionType
+  })
+
+  // Contribute 1-2 matching cards if we have them
+  const count = Math.min(2, matchingCards.length)
+  return matchingCards.slice(0, count)
+}
+
+/**
+ * Schedule a bot's crisis contribution with a short delay.
+ * Calls back with the array of item IDs to contribute.
+ */
+function scheduleBotCrisisContribution (gameId, botPlayerId, callback) {
+  const engine = require('./engine')
+  setTimeout(() => {
+    const state = engine.getGame(gameId)
+    if (!state || state.phase !== 'crisis') return
+    const bot = state.players.find(p => p.id === botPlayerId)
+    if (!bot || bot.isExiled) return
+    const cards = decideBotCrisisContribution(state, botPlayerId)
+    callback(cards)
+  }, BOT_THINK_DELAY_MS)
+}
+
+module.exports = { decideBotActions, scheduleBotTurn, decideBotCrisisContribution, scheduleBotCrisisContribution }
 

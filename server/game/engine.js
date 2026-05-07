@@ -22,6 +22,21 @@ const WS_OPEN = 1 // WebSocket.OPEN
 // In-memory game state cache: gameId -> state
 const games = new Map()
 
+// ─── Game code generator ──────────────────────────────────────────────────────
+
+const GAME_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+function generateGameCode () {
+  const MAX_ATTEMPTS = 10
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    const code = Array.from({ length: 6 }, () =>
+      GAME_CODE_CHARS[Math.floor(Math.random() * GAME_CODE_CHARS.length)]
+    ).join('')
+    if (!db.getGame(code)) return code
+  }
+  throw new Error('Failed to generate a unique game code after maximum attempts')
+}
+
 // ─── Difficulty config ────────────────────────────────────────────────────────
 
 const DIFFICULTY_CONFIG = {
@@ -172,7 +187,7 @@ function spawnRoundZombies (state) {
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
 function createGame (scenarioId, difficulty) {
-  const id = uuidv4()
+  const id = generateGameCode()
   const validDifficulty = ['easy', 'normal', 'hard'].includes(difficulty) ? difficulty : 'normal'
   const state = {
     id,
@@ -349,9 +364,12 @@ function handleCreateGame (socket, request, payload, presence) {
 
 function handleJoinGame (socket, request, payload, presence) {
   const { gameId } = payload || {}
-  const v = validate.requireString(gameId, 'gameId', 36)
+  const v = validate.requireString(gameId, 'gameId', 6)
   if (!v.ok) {
     return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: v.error } }))
+  }
+  if (!/^[A-Z0-9]{6}$/.test(gameId)) {
+    return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: 'gameId must be a 6-character alphanumeric code' } }))
   }
   const state = getGame(gameId)
   if (!state) {
@@ -583,8 +601,20 @@ function handleCrisisContrib (socket, request, payload, presence) {
       }
     }
 
+    // Auto-advance: crisis → colony after reveal so players don't need to End Turn
+    if (state.phase === 'crisis') {
+      statemachine.advanceTurn(state) // END_CRISIS → colony
+      if (state.phase === 'colony') {
+        statemachine.runColonyPhase(state)
+      } else {
+        console.warn('[engine] Crisis auto-advance: expected colony phase but got', state.phase)
+      }
+    }
+
     saveGame(gameId)
     broadcastState(gameId, presence)
+    broadcastPhaseChange(gameId, state, presence)
+    broadcastPrivateState(gameId, presence)
 
     const outcome = statemachine.checkOutcome(state)
     if (outcome) {
@@ -608,6 +638,9 @@ function handleEndTurn (socket, request, payload, presence) {
     // Next player within action phase — roll fresh dice (difficulty-adjusted)
     state.actionDice = rollActionDice(diff.actionDice)
     state.usedDice = []
+  } else if (prevPhase === 'action' && newPhase === 'crisis') {
+    // Entering crisis phase — schedule bot contributions
+    _scheduleBotCrisisContributions(gameId, state, presence)
   } else if (prevPhase === 'crisis' && newPhase === 'colony') {
     // Colony phase: food consumption + zombie movement
     statemachine.runColonyPhase(state)
@@ -753,6 +786,64 @@ function _applyBotTurn (gameId, botPlayerId, botActions, presence) {
 }
 
 // ─── Broadcast Helpers ────────────────────────────────────────────────────────
+
+/**
+ * Schedule crisis contributions for all bot players in the game.
+ * Each bot will contribute after a delay to simulate thinking.
+ */
+function _scheduleBotCrisisContributions (gameId, state, presence) {
+  const bots = (state.players || []).filter(p => p.isBot && !p.isExiled)
+  for (const bot of bots) {
+    botHooks.scheduleBotCrisisContribution(gameId, bot.id, (cards) => {
+      // Simulate handleCrisisContrib for bot
+      const player = state.players.find(p => p.id === bot.id)
+      if (!player) return
+
+      // Remove contributed cards from bot's hand
+      for (const cardId of cards) {
+        const idx = player.hand.indexOf(cardId)
+        if (idx !== -1) player.hand.splice(idx, 1)
+      }
+
+      const currentCrisis = state.currentCrisis
+      const playerCount = state.players.filter(p => !p.isExiled).length
+
+      crisis.addContribution(gameId, bot.id, cards, playerCount, currentCrisis, (result) => {
+        broadcastToAll(gameId, presence, { type: 'CRISIS_REVEAL', payload: result })
+
+        if (result.pass) {
+          if (result.moraleBonus > 0) state.morale = Math.min(10, state.morale + result.moraleBonus)
+          if (result.food) state.food = (state.food || 0) + result.food
+        } else {
+          state.morale = Math.max(0, state.morale - (result.moralePenalty || 1))
+          if (result.colonyZombies && state.locations.colony) {
+            state.locations.colony.zombie_count = (state.locations.colony.zombie_count || 0) + result.colonyZombies
+          }
+        }
+
+        // Auto-advance: crisis → colony after reveal
+        if (state.phase === 'crisis') {
+          statemachine.advanceTurn(state)
+          if (state.phase === 'colony') {
+            statemachine.runColonyPhase(state)
+          } else {
+            console.warn('[engine] Crisis auto-advance: expected colony phase but got', state.phase)
+          }
+        }
+
+        saveGame(gameId)
+        broadcastState(gameId, presence)
+        broadcastPhaseChange(gameId, state, presence)
+        broadcastPrivateState(gameId, presence)
+
+        const outcome = statemachine.checkOutcome(state)
+        if (outcome) {
+          broadcastToAll(gameId, presence, { type: 'GAME_OVER', payload: outcome })
+        }
+      })
+    })
+  }
+}
 
 function broadcastToAll (gameId, presence, msg) {
   const data = JSON.stringify(msg)

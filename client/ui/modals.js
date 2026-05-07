@@ -76,15 +76,14 @@ export function initModals (store, ws) {
     #crisis-panel {
       display: none;
       position: fixed;
-      bottom: 164px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 120px;
+      right: 20px;
       background: #161b22;
       border: 1px solid #4d1d1d;
       border-radius: 10px;
       padding: 18px 28px;
-      min-width: 360px;
-      max-width: 500px;
+      min-width: 260px;
+      max-width: 340px;
       z-index: 55;
     }
     .crisis-panel-eyebrow {

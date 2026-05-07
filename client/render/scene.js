@@ -26,7 +26,11 @@ export async function initScene (container, store) {
 
   // ─── Cameras ───────────────────────────────────────────────────────────────
   const aspect = window.innerWidth / window.innerHeight
-  const frustum = 12
+  const FRUSTUM_DEFAULT = 8
+  const FRUSTUM_MIN = 3
+  const FRUSTUM_MAX = 20
+  const SCROLL_SENSITIVITY = 0.08
+  let frustum = FRUSTUM_DEFAULT
 
   const orthoCamera = new THREE.OrthographicCamera(
     -frustum * aspect, frustum * aspect,
@@ -41,6 +45,33 @@ export async function initScene (container, store) {
   perspCamera.lookAt(0, 0, 0)
 
   let activeCamera = orthoCamera
+
+  function applyFrustum () {
+    const a = window.innerWidth / window.innerHeight
+    orthoCamera.left   = -frustum * a
+    orthoCamera.right  =  frustum * a
+    orthoCamera.top    =  frustum
+    orthoCamera.bottom = -frustum
+    orthoCamera.updateProjectionMatrix()
+  }
+
+  function zoomBy (delta) {
+    frustum = Math.max(FRUSTUM_MIN, Math.min(FRUSTUM_MAX, frustum + delta))
+    applyFrustum()
+  }
+
+  function resetZoom () {
+    frustum = FRUSTUM_DEFAULT
+    applyFrustum()
+  }
+
+  // Scroll-wheel zoom
+  renderer.domElement.addEventListener('wheel', (e) => {
+    e.preventDefault()
+    // Positive deltaY = scroll down = zoom out; negative = zoom in
+    const step = frustum * SCROLL_SENSITIVITY
+    zoomBy(e.deltaY > 0 ? step : -step)
+  }, { passive: false })
 
   // ─── Lighting ──────────────────────────────────────────────────────────────
   const lighting = initLighting(scene)
@@ -80,13 +111,10 @@ export async function initScene (container, store) {
   function onResize () {
     const w = window.innerWidth
     const h = window.innerHeight
-    const a = w / h
     renderer.setSize(w, h)
-    perspCamera.aspect = a
+    perspCamera.aspect = w / h
     perspCamera.updateProjectionMatrix()
-    orthoCamera.left = -frustum * a
-    orthoCamera.right = frustum * a
-    orthoCamera.updateProjectionMatrix()
+    applyFrustum()
   }
   window.addEventListener('resize', onResize)
 
@@ -112,6 +140,7 @@ export async function initScene (container, store) {
   return {
     scene, renderer, orthoCamera, perspCamera,
     switchToPerspective, switchToOrtho,
-    start, stop, board, tokens
+    start, stop, board, tokens,
+    zoomBy, resetZoom, getZoom: () => frustum
   }
 }

@@ -25,7 +25,8 @@ function moveZombies (state) {
       // Barricades absorb the zombie movement — remove one barricade
       loc.barricade_count = loc.barricade_count - 1
     } else {
-      // No barricades — one zombie moves into colony
+      // No barricades — one zombie moves from this location into colony
+      loc.zombie_count = loc.zombie_count - 1
       state.locations[colonyId].zombie_count = (state.locations[colonyId].zombie_count || 0) + 1
     }
   }
