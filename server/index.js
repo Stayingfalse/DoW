@@ -9,12 +9,17 @@ const app = Fastify({ logger: true })
 // ── Crash recovery ─────────────────────────────────────────────────────────────
 // Log uncaught errors but avoid masking them — let the process exit so a process
 // supervisor (Docker restart policy, systemd, PM2) can restart cleanly.
+// flush() is called before process.exit so pino's SonicBoom async buffer is
+// written to stdout before the process terminates (avoids silent log loss in
+// non-TTY environments such as Docker).
 process.on('uncaughtException', (err) => {
   app.log.fatal({ err }, 'Uncaught exception — exiting')
+  app.log.flush()
   process.exit(1)
 })
 process.on('unhandledRejection', (reason) => {
   app.log.fatal({ reason }, 'Unhandled promise rejection — exiting')
+  app.log.flush()
   process.exit(1)
 })
 
@@ -48,6 +53,7 @@ const port = parseInt(process.env.PORT || '3000', 10)
 app.listen({ port, host: '0.0.0.0' }, (err) => {
   if (err) {
     app.log.error(err)
+    app.log.flush()
     process.exit(1)
   }
 })
