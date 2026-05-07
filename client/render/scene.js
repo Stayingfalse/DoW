@@ -26,9 +26,11 @@ export async function initScene (container, store) {
 
   // ─── Cameras ───────────────────────────────────────────────────────────────
   const aspect = window.innerWidth / window.innerHeight
-  let frustum = 8
+  const FRUSTUM_DEFAULT = 8
   const FRUSTUM_MIN = 3
   const FRUSTUM_MAX = 20
+  const SCROLL_SENSITIVITY = 0.08
+  let frustum = FRUSTUM_DEFAULT
 
   const orthoCamera = new THREE.OrthographicCamera(
     -frustum * aspect, frustum * aspect,
@@ -59,7 +61,7 @@ export async function initScene (container, store) {
   }
 
   function resetZoom () {
-    frustum = 8
+    frustum = FRUSTUM_DEFAULT
     applyFrustum()
   }
 
@@ -67,7 +69,7 @@ export async function initScene (container, store) {
   renderer.domElement.addEventListener('wheel', (e) => {
     e.preventDefault()
     // Positive deltaY = scroll down = zoom out; negative = zoom in
-    const step = frustum * 0.08
+    const step = frustum * SCROLL_SENSITIVITY
     zoomBy(e.deltaY > 0 ? step : -step)
   }, { passive: false })
 

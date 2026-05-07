@@ -606,6 +606,8 @@ function handleCrisisContrib (socket, request, payload, presence) {
       statemachine.advanceTurn(state) // END_CRISIS → colony
       if (state.phase === 'colony') {
         statemachine.runColonyPhase(state)
+      } else {
+        console.warn('[engine] Crisis auto-advance: expected colony phase but got', state.phase)
       }
     }
 

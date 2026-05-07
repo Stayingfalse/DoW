@@ -4,6 +4,8 @@
  * Scroll-wheel zoom is handled directly in scene.js.
  */
 
+const ZOOM_STEP = 1.5
+
 export function initZoomControls (scene) {
   const styles = `
     #zoom-controls {
@@ -59,7 +61,7 @@ export function initZoomControls (scene) {
   `
   document.body.appendChild(el)
 
-  el.querySelector('#zoom-in').addEventListener('click', () => scene.zoomBy(-1.5))
-  el.querySelector('#zoom-out').addEventListener('click', () => scene.zoomBy(1.5))
+  el.querySelector('#zoom-in').addEventListener('click', () => scene.zoomBy(-ZOOM_STEP))
+  el.querySelector('#zoom-out').addEventListener('click', () => scene.zoomBy(ZOOM_STEP))
   el.querySelector('#zoom-reset').addEventListener('click', () => scene.resetZoom())
 }
