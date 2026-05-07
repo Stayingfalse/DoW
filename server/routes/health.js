@@ -2,15 +2,27 @@
 
 const { getDb } = require('../db/setup')
 
+// Cache health response for up to 10 s to prevent rapid-poll abuse
+const CACHE_TTL_MS = 10_000
+let _cachedResponse = null
+let _cacheExpiry = 0
+
 /**
  * GET /health
  * Returns a JSON health object for use by Docker HEALTHCHECK, load balancers,
  * and uptime monitors. Always responds with HTTP 200 unless the database check
  * itself throws, in which case it responds with HTTP 503.
+ * Responses are cached for 10 seconds to limit database query frequency.
  */
 module.exports = async function (fastify) {
   fastify.get('/health', async (request, reply) => {
-    const startMs = Date.now()
+    const now = Date.now()
+
+    // Return cached response if still fresh
+    if (_cachedResponse && now < _cacheExpiry) {
+      return reply.code(_cachedResponse.statusCode).send(_cachedResponse.body)
+    }
+
     let dbOk = false
     let dbLatencyMs = null
 
@@ -39,6 +51,10 @@ module.exports = async function (fastify) {
       }
     }
 
-    return reply.code(dbOk ? 200 : 503).send(body)
+    const statusCode = dbOk ? 200 : 503
+    _cachedResponse = { statusCode, body }
+    _cacheExpiry = now + CACHE_TTL_MS
+
+    return reply.code(statusCode).send(body)
   })
 }

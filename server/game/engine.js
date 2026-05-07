@@ -605,12 +605,8 @@ function handleEndTurn (socket, request, payload, presence) {
   const diff = getDifficultyConfig(state)
 
   if (prevPhase === 'action' && newPhase === 'action') {
-    // Next player within action phase — roll fresh dice
-    const activePlayer = state.players.find(p => p.id === state.activePlayerId)
-    const diceCount = (activePlayer && activePlayer.isBot && state.difficulty === 'hard')
-      ? diff.actionDice + diff.betrayerBonusDice
-      : diff.actionDice
-    state.actionDice = rollActionDice(diceCount)
+    // Next player within action phase — roll fresh dice (difficulty-adjusted)
+    state.actionDice = rollActionDice(diff.actionDice)
     state.usedDice = []
   } else if (prevPhase === 'crisis' && newPhase === 'colony') {
     // Colony phase: food consumption + zombie movement
