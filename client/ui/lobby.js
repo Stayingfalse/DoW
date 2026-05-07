@@ -270,7 +270,7 @@ export function initLobby (store, ws) {
   })
 
   ws.on('ERROR', (payload) => {
-    errorEl.textContent = (payload && payload.message) || 'Unable to process request right now. Check your connection and try again.'
+    errorEl.textContent = (payload && payload.message) || 'An error occurred. Please try again.'
   })
 
   ws.on('GAME_STATE', () => {
