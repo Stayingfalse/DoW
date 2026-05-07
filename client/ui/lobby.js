@@ -177,7 +177,8 @@ export function initLobby (store, ws) {
   const startGameBtn = el.querySelector('#lobby-start-btn')
 
   function requireConnection () {
-    if (store.getState().ws.connected) return true
+    const state = store.getState()
+    if (state.ws && state.ws.connected) return true
     errorEl.textContent = 'Connecting to game server…'
     return false
   }
@@ -209,14 +210,17 @@ export function initLobby (store, ws) {
 
     const visiblePlayers = setupPlayers.length > 0
       ? setupPlayers
-      : [...(state.lobby.players || [])]
+      : (state.lobby.players || []).map(player => ({
+          id: player.playerId,
+          displayName: player.displayName
+        }))
 
     if (state.auth && state.auth.isAuthenticated) {
       const selfId = state.auth.playerId
-      const alreadyListed = visiblePlayers.some(player => (player.id || player.playerId) === selfId)
+      const alreadyListed = visiblePlayers.some(player => player.id === selfId)
       if (!alreadyListed) {
         visiblePlayers.unshift({
-          playerId: selfId,
+          id: selfId,
           displayName: state.auth.displayName
         })
       }
@@ -274,7 +278,7 @@ export function initLobby (store, ws) {
   })
 
   ws.on('ERROR', (payload) => {
-    errorEl.textContent = (payload && payload.message) || 'Request failed.'
+    errorEl.textContent = (payload && payload.message) || 'Unable to process request right now. Check your connection and try again.'
   })
 
   ws.on('GAME_STATE', () => {
