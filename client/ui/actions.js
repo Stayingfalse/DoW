@@ -157,7 +157,14 @@ export function initActions (store, ws) {
     el.querySelectorAll('.action-btn[data-action]').forEach(btn => {
       btn.disabled = !active || !hasDice
     })
-    el.querySelector('#end-turn-btn').disabled = !isMyTurn || !game || game.phase === 'setup'
+
+    // End Turn button logic:
+    // - In action phase: only active player can end turn
+    // - In crisis/colony/cleanup phases: any player can advance the phase
+    const canEndTurn = !game || game.phase === 'setup' ? false
+      : inActionPhase ? isMyTurn
+      : true  // Any player can advance during non-action phases
+    el.querySelector('#end-turn-btn').disabled = !canEndTurn
 
     // Reconnect toast
     const wsState = state.wsState || ''

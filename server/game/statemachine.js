@@ -20,13 +20,22 @@ function transition (state, event) {
       }
       break
     case 'END_ACTION':
-      if (state.phase === 'action') state.phase = 'crisis'
+      if (state.phase === 'action') {
+        state.phase = 'crisis'
+        state.activePlayerId = null  // No active player during crisis phase
+      }
       break
     case 'END_CRISIS':
-      if (state.phase === 'crisis') state.phase = 'colony'
+      if (state.phase === 'crisis') {
+        state.phase = 'colony'
+        state.activePlayerId = null  // No active player during colony phase
+      }
       break
     case 'END_COLONY':
-      if (state.phase === 'colony') state.phase = 'cleanup'
+      if (state.phase === 'colony') {
+        state.phase = 'cleanup'
+        state.activePlayerId = null  // No active player during cleanup phase
+      }
       break
     case 'END_CLEANUP':
       if (state.phase === 'cleanup') {
