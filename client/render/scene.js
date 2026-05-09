@@ -102,6 +102,9 @@ export async function initScene (container, store) {
   let lastPointerX = 0
   let lastPointerY = 0
 
+  // Set initial cursor style to indicate panning is available
+  renderer.domElement.style.cursor = 'grab'
+
   function onPointerDown (e) {
     // Only pan with left mouse button or single touch
     if (e.button !== undefined && e.button !== 0) return
@@ -124,7 +127,7 @@ export async function initScene (container, store) {
 
   function onPointerUp (e) {
     isPanning = false
-    renderer.domElement.style.cursor = ''
+    renderer.domElement.style.cursor = 'grab'
   }
 
   renderer.domElement.addEventListener('mousedown', onPointerDown)
