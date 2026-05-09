@@ -2,6 +2,10 @@
 
 const itemsData = require('../data/items.json')
 
+// Special "virtual card" used to represent contributing 1 food directly from the
+// colony food supply ("food store") during food-type crises.
+const FOOD_STORE_TOKEN_ID = '__FOOD_STORE__'
+
 // Per-game escrow: Map<gameId, Map<playerId, string[]>>
 const escrow = new Map()
 // Per-game timers
@@ -69,6 +73,10 @@ function reveal (gameId, currentCrisis, onReveal) {
   } else {
     // Each contributed card matches if its item type equals the crisis's contributionType
     for (const cardId of allCards) {
+      if (cardId === FOOD_STORE_TOKEN_ID) {
+        if (currentCrisis.contributionType === 'food') qualifyingCount++
+        continue
+      }
       const item = itemsData.find(i => i.id === cardId)
       if (item && item.type === currentCrisis.contributionType) {
         qualifyingCount++
@@ -105,4 +113,4 @@ function forceReveal (gameId, currentCrisis, onReveal) {
   reveal(gameId, currentCrisis, onReveal)
 }
 
-module.exports = { addContribution, forceReveal, clearTimer }
+module.exports = { addContribution, forceReveal, clearTimer, FOOD_STORE_TOKEN_ID }

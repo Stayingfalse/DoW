@@ -5,6 +5,9 @@
  */
 import { escHtml } from '../utils/escape-html.js'
 
+// Must match server/game/crisis.js
+const FOOD_STORE_TOKEN_ID = '__FOOD_STORE__'
+
 const TYPE_COLOURS = {
   food:     { bg: '#0f2e0f', border: '#3fb950', accent: '#3fb950', label: '#56d364' },
   medicine: { bg: '#0d1f3c', border: '#58a6ff', accent: '#58a6ff', label: '#79c0ff' },
@@ -129,6 +132,47 @@ export function initCards (store, ws) {
       color: #e6edf3;
       min-width: 80px;
     }
+    #crisis-contrib-food {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 10px;
+      padding-left: 10px;
+      border-left: 1px solid #30363d;
+    }
+    #crisis-contrib-food.hidden { display: none; }
+    .contrib-food-label {
+      font-size: 0.72rem;
+      color: #56d364;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .contrib-food-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: #e6edf3;
+      cursor: pointer;
+      line-height: 1;
+      font-weight: 800;
+    }
+    .contrib-food-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #contrib-food-count {
+      min-width: 18px;
+      text-align: center;
+      color: #e6edf3;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    #contrib-food-available {
+      font-size: 0.72rem;
+      color: #8b949e;
+    }
     .contrib-btn {
       padding: 6px 14px;
       border: none;
@@ -152,6 +196,13 @@ export function initCards (store, ws) {
     <div id="crisis-contrib-bar" class="hidden">
       <span id="crisis-contrib-label">Crisis</span>
       <span id="crisis-contrib-count">0 selected</span>
+      <span id="crisis-contrib-food" class="hidden">
+        <span class="contrib-food-label">Food store</span>
+        <button class="contrib-food-btn" id="contrib-food-minus">−</button>
+        <span id="contrib-food-count">0</span>
+        <button class="contrib-food-btn" id="contrib-food-plus">+</button>
+        <span id="contrib-food-available"></span>
+      </span>
       <button class="contrib-btn" id="contrib-submit-btn">Contribute</button>
       <button class="contrib-btn" id="contrib-skip-btn">Skip</button>
     </div>
@@ -160,14 +211,22 @@ export function initCards (store, ws) {
   const handEl = el.querySelector('#cards-hand')
   const contribBar = el.querySelector('#crisis-contrib-bar')
   const contribCountEl = el.querySelector('#crisis-contrib-count')
+  const foodWrap = el.querySelector('#crisis-contrib-food')
+  const foodMinusBtn = el.querySelector('#contrib-food-minus')
+  const foodPlusBtn = el.querySelector('#contrib-food-plus')
+  const foodCountEl = el.querySelector('#contrib-food-count')
+  const foodAvailEl = el.querySelector('#contrib-food-available')
   const submitBtn = el.querySelector('#contrib-submit-btn')
   const skipBtn = el.querySelector('#contrib-skip-btn')
 
   // Selected card IDs for crisis contribution
   const selectedForContrib = new Set()
+  let selectedFoodFromStore = 0
   let currentPhase = 'setup'
   let currentHand = []
   let currentMyTurn = false
+  let currentCrisis = null
+  let currentFood = 0
 
   // Click outside to deselect normal selection
   document.addEventListener('click', (e) => {
@@ -177,16 +236,57 @@ export function initCards (store, ws) {
   })
 
   submitBtn.addEventListener('click', () => {
-    ws.send('CRISIS_CONTRIB', { cards: [...selectedForContrib] })
+    const foodTokens = Array.from({ length: selectedFoodFromStore }, () => FOOD_STORE_TOKEN_ID)
+    ws.send('CRISIS_CONTRIB', { cards: [...selectedForContrib, ...foodTokens] })
     selectedForContrib.clear()
+    selectedFoodFromStore = 0
     contribBar.classList.add('hidden')
-    renderHand(currentHand, currentPhase, currentMyTurn)
+    renderHand(currentHand, currentPhase, currentMyTurn, currentCrisis, currentFood)
   })
 
   skipBtn.addEventListener('click', () => {
     ws.send('CRISIS_CONTRIB', { cards: [] })
     selectedForContrib.clear()
+    selectedFoodFromStore = 0
     contribBar.classList.add('hidden')
+  })
+
+  function updateContribUi () {
+    const hasCrisis = currentPhase === 'crisis' && currentCrisis
+    const isFoodCrisis = hasCrisis && currentCrisis.contributionType === 'food'
+
+    const parts = []
+    if (selectedForContrib.size) parts.push(`${selectedForContrib.size} card${selectedForContrib.size === 1 ? '' : 's'}`)
+    if (selectedFoodFromStore) parts.push(`${selectedFoodFromStore} food`)
+    contribCountEl.textContent = parts.length ? parts.join(', ') : '0 selected'
+
+    if (isFoodCrisis) {
+      foodWrap.classList.remove('hidden')
+      foodCountEl.textContent = String(selectedFoodFromStore)
+      foodAvailEl.textContent = `(avail ${currentFood || 0})`
+      foodMinusBtn.disabled = selectedFoodFromStore <= 0
+      foodPlusBtn.disabled = selectedFoodFromStore >= (currentFood || 0)
+    } else {
+      foodWrap.classList.add('hidden')
+      selectedFoodFromStore = 0
+    }
+
+    if (isFoodCrisis) {
+      contribBar.classList.remove('hidden')
+    } else if (hasCrisis && (selectedForContrib.size > 0 || selectedFoodFromStore > 0)) {
+      contribBar.classList.remove('hidden')
+    }
+  }
+
+  foodMinusBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    selectedFoodFromStore = Math.max(0, selectedFoodFromStore - 1)
+    updateContribUi()
+  })
+  foodPlusBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    selectedFoodFromStore = Math.min(currentFood || 0, selectedFoodFromStore + 1)
+    updateContribUi()
   })
 
   // ─── Item data cache (fetched once) ──────────────────────────────────────────
@@ -203,16 +303,16 @@ export function initCards (store, ws) {
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 
-  async function renderHand (hand, phase, isMyTurn) {
+  async function renderHand (hand, phase, isMyTurn, crisisCard, food) {
     currentHand = hand
     currentPhase = phase
     currentMyTurn = isMyTurn
+    currentCrisis = crisisCard || null
+    currentFood = food || 0
 
-    if (!hand.length) {
-      handEl.classList.add('hidden')
-      return
-    }
-    handEl.classList.remove('hidden')
+    const isFoodCrisis = phase === 'crisis' && crisisCard && crisisCard.contributionType === 'food'
+    if (!hand.length) handEl.classList.add('hidden')
+    else handEl.classList.remove('hidden')
 
     const items = await getItems()
     const itemMap = new Map(items.map(i => [i.id, i]))
@@ -252,8 +352,7 @@ export function initCards (store, ws) {
             selectedForContrib.add(cardId)
             cardEl.classList.add('contribute-selected')
           }
-          contribCountEl.textContent = `${selectedForContrib.size} selected`
-          contribBar.classList.remove('hidden')
+          updateContribUi()
           return
         }
 
@@ -265,6 +364,9 @@ export function initCards (store, ws) {
         if (!wasSelected) cardEl.classList.add('selected')
       })
     })
+
+    // Ensure food controls remain available even if the player has no cards.
+    if (isFoodCrisis) updateContribUi()
   }
 
   // ─── Store subscription ───────────────────────────────────────────────────────
@@ -274,6 +376,8 @@ export function initCards (store, ws) {
     const game = state.game
     const phase = game ? game.phase : 'setup'
     const isMyTurn = game && game.activePlayerId === state.auth.playerId
+    const crisisCard = game ? game.currentCrisis : null
+    const food = game ? game.food : 0
 
     currentPhase = phase
     currentMyTurn = isMyTurn
@@ -282,8 +386,9 @@ export function initCards (store, ws) {
     if (phase !== 'crisis') {
       contribBar.classList.add('hidden')
       selectedForContrib.clear()
+      selectedFoodFromStore = 0
     }
 
-    renderHand(hand, phase, isMyTurn)
+    renderHand(hand, phase, isMyTurn, crisisCard, food)
   })
 }

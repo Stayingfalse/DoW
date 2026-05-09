@@ -101,10 +101,18 @@ function scheduleBotTurn (gameId, botPlayerId, callback) {
  */
 function decideBotCrisisContribution (gameState, botPlayerId) {
   const player = (gameState.players || []).find(p => p.id === botPlayerId)
-  if (!player || !player.hand || !player.hand.length) return []
+  if (!player) return []
 
   const crisis = gameState.currentCrisis
   if (!crisis) return []
+
+  const { FOOD_STORE_TOKEN_ID } = require('./crisis')
+
+  // Food crises can be satisfied by contributing from the colony food supply even with an empty hand.
+  if ((!player.hand || !player.hand.length) && crisis.contributionType === 'food' && (gameState.food || 0) > 0) {
+    return [FOOD_STORE_TOKEN_ID]
+  }
+  if (!player.hand || !player.hand.length) return []
 
   const itemsData = require('../data/items.json')
   const hand = player.hand || []
@@ -123,7 +131,14 @@ function decideBotCrisisContribution (gameState, botPlayerId) {
 
   // Contribute 1-2 matching cards if we have them
   const count = Math.min(2, matchingCards.length)
-  return matchingCards.slice(0, count)
+  if (count > 0) return matchingCards.slice(0, count)
+
+  // Food crises can also be satisfied by contributing from the colony food supply.
+  if (crisis.contributionType === 'food' && (gameState.food || 0) > 0) {
+    return [FOOD_STORE_TOKEN_ID]
+  }
+
+  return []
 }
 
 /**
@@ -143,4 +158,3 @@ function scheduleBotCrisisContribution (gameId, botPlayerId, callback) {
 }
 
 module.exports = { decideBotActions, scheduleBotTurn, decideBotCrisisContribution, scheduleBotCrisisContribution }
-

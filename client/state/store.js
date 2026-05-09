@@ -129,7 +129,7 @@ export function initStore () {
           ui: { ...state.ui, activeModal: 'crisis_reveal' }
         }
         if (payload.pass) {
-          addLog(state, `Crisis passed! "${payload.crisisName || ''}" — ${payload.qualifyingCount || 0}/${payload.threshold || 0} cards contributed.`)
+          addLog(state, `Crisis passed! "${payload.crisisName || ''}" — ${payload.qualifyingCount || 0}/${payload.threshold || 0} contributed.`)
         } else {
           addLog(state, `Crisis failed! "${payload.crisisName || ''}" — morale -${payload.moralePenalty || 1}.`)
         }
