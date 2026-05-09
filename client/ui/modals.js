@@ -368,8 +368,9 @@ export function initModals (store, ws) {
       const c = game.currentCrisis
       el.querySelector('#crisis-name').textContent = c.name || 'Unknown Crisis'
       el.querySelector('#crisis-desc').textContent = c.description || ''
-      el.querySelector('#crisis-type-info').textContent =
-        `Contribute ${c.threshold} ${c.contributionType} card${c.threshold !== 1 ? 's' : ''} to pass.`
+      el.querySelector('#crisis-type-info').textContent = c.contributionType === 'food'
+        ? `Contribute ${c.threshold} food (cards or food from store) to pass.`
+        : `Contribute ${c.threshold} ${c.contributionType} card${c.threshold !== 1 ? 's' : ''} to pass.`
       crisisPanel.style.display = 'block'
     } else {
       crisisPanel.style.display = 'none'

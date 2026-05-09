@@ -137,6 +137,7 @@ function requirePlayerInGame (state, playerId) {
 }
 
 module.exports = {
+  MAX_CARDS_PER_CONTRIBUTION,
   requireString,
   requireValidLocation,
   requireSurvivorOwnership,

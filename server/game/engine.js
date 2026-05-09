@@ -567,28 +567,60 @@ function handleCrisisContrib (socket, request, payload, presence) {
     return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: inGame.error } }))
   }
 
-  // Validate that all contributed cards are actually in the player's hand
+  // Validate that the contribution size is reasonable (defence-in-depth).
   const cards = Array.isArray(payload && payload.cards) ? payload.cards : []
-  if (cards.length > 0) {
-    const cardsCheck = validate.requireCardsInHand(state, playerId, cards)
+  if (cards.length > validate.MAX_CARDS_PER_CONTRIBUTION) {
+    return socket.send(JSON.stringify({
+      type: 'ERROR',
+      payload: { message: `Too many cards (max ${validate.MAX_CARDS_PER_CONTRIBUTION})` }
+    }))
+  }
+
+  const currentCrisis = state.currentCrisis
+  const foodStoreCount = cards.filter(id => id === crisis.FOOD_STORE_TOKEN_ID).length
+  const handCards = cards.filter(id => id !== crisis.FOOD_STORE_TOKEN_ID)
+
+  if (foodStoreCount > 0 && (!currentCrisis || currentCrisis.contributionType !== 'food')) {
+    return socket.send(JSON.stringify({
+      type: 'ERROR',
+      payload: { message: 'Food store contributions are only allowed for food crises' }
+    }))
+  }
+  if (foodStoreCount > (state.food || 0)) {
+    return socket.send(JSON.stringify({
+      type: 'ERROR',
+      payload: { message: 'Not enough food in the colony supply' }
+    }))
+  }
+
+  // Validate that contributed hand cards are actually in the player's hand
+  if (handCards.length > 0) {
+    const cardsCheck = validate.requireCardsInHand(state, playerId, handCards)
     if (!cardsCheck.ok) {
       return socket.send(JSON.stringify({ type: 'ERROR', payload: { message: cardsCheck.error } }))
     }
   }
 
-  // Remove contributed cards from player's hand
+  // Remove contributed hand cards from player's hand, and reserve food from colony supply
   const player = state.players.find(p => p.id === playerId)
   if (player) {
-    for (const cardId of cards) {
+    for (const cardId of handCards) {
       const idx = player.hand.indexOf(cardId)
       if (idx !== -1) player.hand.splice(idx, 1)
     }
   }
 
-  const currentCrisis = state.currentCrisis
+  if (foodStoreCount > 0) {
+    state.food = Math.max(0, (state.food || 0) - foodStoreCount)
+  }
+
   const playerCount = state.players.filter(p => !p.isExiled).length
 
-  crisis.addContribution(gameId, playerId, cards, playerCount, currentCrisis, (result) => {
+  const escrowCards = foodStoreCount > 0
+    ? [...handCards, ...Array.from({ length: foodStoreCount }, () => crisis.FOOD_STORE_TOKEN_ID)]
+    : handCards
+
+  crisis.addContribution(gameId, playerId, escrowCards, playerCount, currentCrisis, (result) => {
     broadcastToAll(gameId, presence, { type: 'CRISIS_REVEAL', payload: result })
 
     if (result.pass) {
@@ -799,16 +831,31 @@ function _scheduleBotCrisisContributions (gameId, state, presence) {
       const player = state.players.find(p => p.id === bot.id)
       if (!player) return
 
-      // Remove contributed cards from bot's hand
-      for (const cardId of cards) {
+      const currentCrisis = state.currentCrisis
+      const foodStoreCount = cards.filter(id => id === crisis.FOOD_STORE_TOKEN_ID).length
+      const handCards = cards.filter(id => id !== crisis.FOOD_STORE_TOKEN_ID)
+
+      const reservedFood = (foodStoreCount > 0 && currentCrisis && currentCrisis.contributionType === 'food')
+        ? Math.min(foodStoreCount, state.food || 0)
+        : 0
+
+      if (reservedFood > 0) {
+        state.food = Math.max(0, (state.food || 0) - reservedFood)
+      }
+
+      // Remove contributed hand cards from bot's hand
+      for (const cardId of handCards) {
         const idx = player.hand.indexOf(cardId)
         if (idx !== -1) player.hand.splice(idx, 1)
       }
 
-      const currentCrisis = state.currentCrisis
       const playerCount = state.players.filter(p => !p.isExiled).length
 
-      crisis.addContribution(gameId, bot.id, cards, playerCount, currentCrisis, (result) => {
+      const escrowCards = reservedFood > 0
+        ? [...handCards, ...Array.from({ length: reservedFood }, () => crisis.FOOD_STORE_TOKEN_ID)]
+        : handCards
+
+      crisis.addContribution(gameId, bot.id, escrowCards, playerCount, currentCrisis, (result) => {
         broadcastToAll(gameId, presence, { type: 'CRISIS_REVEAL', payload: result })
 
         if (result.pass) {
