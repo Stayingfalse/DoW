@@ -16,17 +16,17 @@ const LOC_LIGHTS = [
 ]
 
 export function initLighting (scene) {
-  // Cold ambient (winter atmosphere)
-  const ambient = new THREE.AmbientLight(0x7a9aaa, 0.42)
+  // Cold ambient (winter atmosphere) — increased for better visibility
+  const ambient = new THREE.AmbientLight(0x8aaacc, 0.65)
   scene.add(ambient)
 
-  // Moonlight — very faint, near-overhead
-  const moonLight = new THREE.DirectionalLight(0x9ab0cc, 0.25)
+  // Moonlight — boosted intensity
+  const moonLight = new THREE.DirectionalLight(0xa8c0dd, 0.45)
   moonLight.position.set(-3, 30, 5)
   scene.add(moonLight)
 
-  // Key directional light (casts shadows, slight warm tint)
-  const dirLight = new THREE.DirectionalLight(0xcce0ff, 1.15)
+  // Key directional light (casts shadows, slight warm tint) — increased brightness
+  const dirLight = new THREE.DirectionalLight(0xddeeff, 1.65)
   dirLight.position.set(10, 20, 10)
   dirLight.castShadow = true
   dirLight.shadow.mapSize.width = 2048
@@ -40,8 +40,8 @@ export function initLighting (scene) {
   dirLight.shadow.bias = -0.001
   scene.add(dirLight)
 
-  // Soft fill light from opposite side
-  const fillLight = new THREE.DirectionalLight(0x223344, 0.28)
+  // Soft fill light from opposite side — boosted
+  const fillLight = new THREE.DirectionalLight(0x334455, 0.50)
   fillLight.position.set(-8, 10, -8)
   scene.add(fillLight)
 

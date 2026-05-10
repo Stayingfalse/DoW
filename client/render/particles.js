@@ -5,8 +5,8 @@
 import * as THREE from 'three'
 
 const LAYER_CONFIGS = [
-  { count: 1400, yRange: 22, spread: 44, sizeRange: [0.06, 0.13], opacity: 0.60, speedMult: 1.0 },
-  { count:  600, yRange: 20, spread: 40, sizeRange: [0.14, 0.22], opacity: 0.40, speedMult: 0.7 }
+  { count: 1600, yRange: 22, spread: 44, sizeRange: [0.08, 0.16], opacity: 0.78, speedMult: 1.0 },
+  { count:  800, yRange: 20, spread: 40, sizeRange: [0.16, 0.26], opacity: 0.55, speedMult: 0.7 }
 ]
 
 export function initParticles (scene) {
@@ -90,10 +90,10 @@ function buildLayer (cfg, flakeTex, seed) {
     transparent: true,
     opacity,
     sizeAttenuation: true,
-    alphaTest: 0.05,
+    alphaTest: 0.03,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    color: 0xd8eeff
+    blending: THREE.NormalBlending,
+    color: 0xeef8ff
   })
 
   const points = new THREE.Points(geo, mat)

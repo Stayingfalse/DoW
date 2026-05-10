@@ -1,7 +1,7 @@
 /**
  * Dead of Winter — Zoom Controls
  * Provides +/- buttons and a reset control for the 3D board camera.
- * Scroll-wheel zoom is handled directly in scene.js.
+ * Scroll-wheel zoom and mouse/touch drag panning are handled in scene.js.
  */
 
 const ZOOM_STEP = 1.5
@@ -56,12 +56,12 @@ export function initZoomControls (scene) {
   el.id = 'zoom-controls'
   el.innerHTML = `
     <button class="zoom-btn" id="zoom-in"  title="Zoom In (+)">+</button>
-    <button class="zoom-btn" id="zoom-reset" title="Reset Zoom">⊙</button>
+    <button class="zoom-btn" id="zoom-reset" title="Reset View">⊙</button>
     <button class="zoom-btn" id="zoom-out" title="Zoom Out (−)">−</button>
   `
   document.body.appendChild(el)
 
   el.querySelector('#zoom-in').addEventListener('click', () => scene.zoomBy(-ZOOM_STEP))
   el.querySelector('#zoom-out').addEventListener('click', () => scene.zoomBy(ZOOM_STEP))
-  el.querySelector('#zoom-reset').addEventListener('click', () => scene.resetZoom())
+  el.querySelector('#zoom-reset').addEventListener('click', () => scene.resetView())
 }

@@ -75,7 +75,7 @@ export async function initBoard (scene, store) {
     const bOffsets = [[0.6, -0.8], [-0.6, -0.8], [0.6, 0.8], [-0.6, 0.8]]
     for (const [bx, bz] of bOffsets) {
       const bMesh = createBarricadeMarker()
-      bMesh.position.set(x + bx, 0.12, z + bz)
+      bMesh.position.set(x + bx, 0, z + bz)
       bMesh.visible = false
       group.add(bMesh)
       barricades.push(bMesh)
@@ -277,12 +277,64 @@ function paintBadge (ctx, count, bgColour, borderColour) {
 // ─── Barricade marker ─────────────────────────────────────────────────────────
 
 function createBarricadeMarker () {
-  const geo = new THREE.BoxGeometry(0.28, 0.14, 0.1)
-  const mat = new THREE.MeshStandardMaterial({ color: 0x5a3010, roughness: 0.85, metalness: 0.1 })
-  const mesh = new THREE.Mesh(geo, mat)
-  mesh.castShadow = true
-  mesh.rotation.y = Math.PI / 4
-  return mesh
+  const group = new THREE.Group()
+
+  // Create a stack of wooden planks for a more physical barricade appearance
+  const plankColors = [0x5a3010, 0x4a2808, 0x6a4018, 0x503014]
+  const rng = Math.random
+
+  // Base platform/pallet
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: 0x3a2408,
+    roughness: 0.92,
+    metalness: 0.05
+  })
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.4), baseMat)
+  base.position.y = 0.03
+  base.castShadow = true
+  base.receiveShadow = true
+  group.add(base)
+
+  // Stacked planks with varying sizes and rotations
+  const plankConfigs = [
+    { w: 0.44, h: 0.08, d: 0.12, y: 0.10, rx: 0, ry: 0.1 },
+    { w: 0.38, h: 0.08, d: 0.10, y: 0.18, rx: 0, ry: -0.15 },
+    { w: 0.42, h: 0.08, d: 0.11, y: 0.26, rx: 0, ry: 0.08 },
+    { w: 0.35, h: 0.07, d: 0.09, y: 0.33, rx: 0.05, ry: -0.12 }
+  ]
+
+  plankConfigs.forEach((cfg, i) => {
+    const mat = new THREE.MeshStandardMaterial({
+      color: plankColors[i % plankColors.length],
+      roughness: 0.88,
+      metalness: 0.08
+    })
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d), mat)
+    plank.position.y = cfg.y
+    plank.position.x = (rng() - 0.5) * 0.05
+    plank.position.z = (rng() - 0.5) * 0.05
+    plank.rotation.x = cfg.rx
+    plank.rotation.y = cfg.ry
+    plank.castShadow = true
+    plank.receiveShadow = true
+    group.add(plank)
+  })
+
+  // Add a few nails/metal brackets for detail
+  const metalMat = new THREE.MeshStandardMaterial({
+    color: 0x444444,
+    roughness: 0.6,
+    metalness: 0.7
+  })
+  for (let i = 0; i < 3; i++) {
+    const nail = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.04), metalMat)
+    nail.position.set((rng() - 0.5) * 0.3, 0.15 + rng() * 0.15, (rng() - 0.5) * 0.2)
+    nail.rotation.z = Math.PI / 2 + (rng() - 0.5) * 0.3
+    group.add(nail)
+  }
+
+  group.rotation.y = Math.PI / 4 + (rng() - 0.5) * 0.4
+  return group
 }
 
 // ─── PRNG ─────────────────────────────────────────────────────────────────────

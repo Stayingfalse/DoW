@@ -30,15 +30,19 @@ export async function initScene (container, store) {
   const FRUSTUM_MIN = 3
   const FRUSTUM_MAX = 20
   const SCROLL_SENSITIVITY = 0.08
+  const PAN_SPEED = 0.015
   let frustum = FRUSTUM_DEFAULT
+  let panOffset = new THREE.Vector3(0, 0, 0)
+  const DEFAULT_CAMERA_POS = new THREE.Vector3(0, 22, 11)
+  const DEFAULT_LOOK_AT = new THREE.Vector3(0, 0, 0)
 
   const orthoCamera = new THREE.OrthographicCamera(
     -frustum * aspect, frustum * aspect,
     frustum, -frustum,
     0.1, 200
   )
-  orthoCamera.position.set(0, 22, 11)
-  orthoCamera.lookAt(0, 0, 0)
+  orthoCamera.position.copy(DEFAULT_CAMERA_POS)
+  orthoCamera.lookAt(DEFAULT_LOOK_AT.x, DEFAULT_LOOK_AT.y, DEFAULT_LOOK_AT.z)
 
   const perspCamera = new THREE.PerspectiveCamera(45, aspect, 0.1, 200)
   perspCamera.position.set(0, 8, 12)
@@ -55,9 +59,29 @@ export async function initScene (container, store) {
     orthoCamera.updateProjectionMatrix()
   }
 
+  function applyPan () {
+    const lookAtTarget = new THREE.Vector3().copy(DEFAULT_LOOK_AT).add(panOffset)
+    const cameraPos = new THREE.Vector3().copy(DEFAULT_CAMERA_POS).add(panOffset)
+    orthoCamera.position.copy(cameraPos)
+    orthoCamera.lookAt(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z)
+  }
+
+  function panBy (deltaX, deltaZ) {
+    panOffset.x += deltaX * frustum * PAN_SPEED
+    panOffset.z += deltaZ * frustum * PAN_SPEED
+    applyPan()
+  }
+
   function zoomBy (delta) {
     frustum = Math.max(FRUSTUM_MIN, Math.min(FRUSTUM_MAX, frustum + delta))
     applyFrustum()
+  }
+
+  function resetView () {
+    frustum = FRUSTUM_DEFAULT
+    panOffset.set(0, 0, 0)
+    applyFrustum()
+    applyPan()
   }
 
   function resetZoom () {
@@ -72,6 +96,69 @@ export async function initScene (container, store) {
     const step = frustum * SCROLL_SENSITIVITY
     zoomBy(e.deltaY > 0 ? step : -step)
   }, { passive: false })
+
+  // Mouse/touch pan controls
+  let isPanning = false
+  let lastPointerX = 0
+  let lastPointerY = 0
+
+  // Set initial cursor style to indicate panning is available
+  renderer.domElement.style.cursor = 'grab'
+
+  function onPointerDown (e) {
+    // Only pan with left mouse button or single touch
+    if (e.button !== undefined && e.button !== 0) return
+    isPanning = true
+    lastPointerX = e.clientX
+    lastPointerY = e.clientY
+    renderer.domElement.style.cursor = 'grabbing'
+  }
+
+  function onPointerMove (e) {
+    if (!isPanning) return
+    const deltaX = e.clientX - lastPointerX
+    const deltaY = e.clientY - lastPointerY
+    lastPointerX = e.clientX
+    lastPointerY = e.clientY
+    // Pan in screen space: positive deltaX = pan right, negative = pan left
+    // positive deltaY = pan down (camera moves up in world), negative = pan up
+    panBy(-deltaX, deltaY)
+  }
+
+  function onPointerUp (e) {
+    isPanning = false
+    renderer.domElement.style.cursor = 'grab'
+  }
+
+  renderer.domElement.addEventListener('mousedown', onPointerDown)
+  renderer.domElement.addEventListener('mousemove', onPointerMove)
+  renderer.domElement.addEventListener('mouseup', onPointerUp)
+  renderer.domElement.addEventListener('mouseleave', onPointerUp)
+
+  // Touch support
+  renderer.domElement.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      e.preventDefault()
+      const touch = e.touches[0]
+      onPointerDown({ clientX: touch.clientX, clientY: touch.clientY, button: 0 })
+    }
+  }, { passive: false })
+
+  renderer.domElement.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && isPanning) {
+      e.preventDefault()
+      const touch = e.touches[0]
+      onPointerMove({ clientX: touch.clientX, clientY: touch.clientY })
+    }
+  }, { passive: false })
+
+  renderer.domElement.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) {
+      onPointerUp({})
+    }
+  })
+
+  renderer.domElement.addEventListener('touchcancel', onPointerUp)
 
   // ─── Lighting ──────────────────────────────────────────────────────────────
   const lighting = initLighting(scene)
@@ -141,6 +228,8 @@ export async function initScene (container, store) {
     scene, renderer, orthoCamera, perspCamera,
     switchToPerspective, switchToOrtho,
     start, stop, board, tokens,
-    zoomBy, resetZoom, getZoom: () => frustum
+    zoomBy, resetZoom, resetView, panBy,
+    getZoom: () => frustum,
+    getPan: () => panOffset.clone()
   }
 }
